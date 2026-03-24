@@ -1,0 +1,21 @@
+<div class="field-wrap client-picker-field field-primary" data-field-name="{{ field.name }}">
+  <label for="{{ field.id_for_label }}" data-field-label="{{ field.name }}">{{ field.label }}</label>
+  <div class="client-picker" data-client-picker>
+    <input
+      type="text"
+      class="client-picker-input"
+      data-client-picker-input
+      placeholder="Buscar cliente por nombre o RUC"
+      autocomplete="off"
+      spellcheck="false"
+    >
+    {{ field }}
+    <div class="client-picker-menu" data-client-picker-menu hidden></div>
+  </div>
+  {% if field.help_text %}
+    <small class="muted">{{ field.help_text }}</small>
+  {% endif %}
+  {% if field.errors %}
+    <small class="error-text">{{ field.errors|join:", " }}</small>
+  {% endif %}
+</div>

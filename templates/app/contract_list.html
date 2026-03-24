@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% load money_format %}
+{% block title %}Contratos{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h2>Contratos</h2>
+  {% if can_manage_contracts %}
+    <a class="btn" href="/app/contracts/new/">Nuevo contrato</a>
+  {% endif %}
+</div>
+<div class="panel">
+  <form method="get" class="filters">
+    <input type="text" name="q" placeholder="Buscar cliente" value="{{ q }}">
+    <select name="active">
+      <option value="">Todos</option>
+      <option value="1" {% if active_filter == '1' %}selected{% endif %}>Activos</option>
+      <option value="0" {% if active_filter == '0' %}selected{% endif %}>Inactivos</option>
+    </select>
+    <button class="btn">Filtrar</button>
+  </form>
+</div>
+<div class="table-wrap"><table>
+<thead><tr><th>Cliente</th><th>Inicio</th><th>Vencimiento</th><th>Monto</th><th>Moneda</th><th>Activo</th><th>Acciones</th></tr></thead>
+<tbody>
+{% for item in items %}
+<tr>
+<td><a href="/app/clients/{{ item.client_id }}/">{{ item.client.name }}</a></td>
+<td>{{ item.start_date|default:"-" }}</td>
+<td>
+  {% if item.end_date %}
+    {% if item.end_date < today %}
+      <span class="status-badge overdue">Vencido {{ item.end_date }}</span>
+    {% elif item.end_date <= soon_cutoff %}
+      <span class="status-badge soon">Próximo {{ item.end_date }}</span>
+    {% else %}
+      <span class="status-badge ok">{{ item.end_date }}</span>
+    {% endif %}
+  {% else %}
+    -
+  {% endif %}
+</td>
+<td>{{ item.monthly_amount|money:item.currency }}</td>
+<td>{{ item.currency }}</td>
+<td>
+  {% if item.active %}
+    <span class="status-badge active">Activo</span>
+  {% else %}
+    <span class="status-badge inactive">Inactivo</span>
+  {% endif %}
+</td>
+<td>
+{% if can_manage_contracts %}
+<a class="action-link" href="/app/contracts/{{ item.id }}/edit/">Editar</a>
+{% else %}-{% endif %}
+</td>
+</tr>
+{% empty %}<tr><td colspan="7">Sin registros.</td></tr>{% endfor %}
+</tbody>
+</table></div>
+{% endblock %}

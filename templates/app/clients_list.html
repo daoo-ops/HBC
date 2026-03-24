@@ -1,0 +1,432 @@
+{% extends "base.html" %}
+{% load money_format %}
+{% block title %}Clientes{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h2>Clientes</h2>
+  <div class="actions-inline">
+    {% if is_funcionario %}
+      <span class="status-badge active">Vista: Mis clientes</span>
+    {% else %}
+      <a class="btn btn-secondary" href="/app/clients/?mine=1">Mis clientes</a>
+    {% endif %}
+    {% if can_manage_clients %}
+      <a class="btn" href="/app/clients/new/">Nuevo cliente</a>
+    {% endif %}
+  </div>
+</div>
+
+<div class="panel">
+  <form method="get" class="filters">
+    {% if mine_filter %}<input type="hidden" name="mine" value="{{ mine_filter }}">{% endif %}
+    <input type="text" name="q" placeholder="Buscar por nombre o RUC" value="{{ q }}">
+    <select name="zone">
+      <option value="">Todas las zonas</option>
+      {% for value,label in zone_choices %}
+        <option value="{{ value }}" {% if zone == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <select name="status">
+      <option value="">Todos los estados</option>
+      {% for value,label in status_choices %}
+        <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <select name="invoice_status">
+      <option value="">Facturas del período: todas</option>
+      {% for value,label in invoice_status_choices %}
+        <option value="{{ value }}" {% if invoice_status_filter == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <select name="month">
+      {% for value,label in month_choices %}
+        <option value="{{ value }}" {% if selected_month == value %}selected{% endif %}>Mes: {{ label }}</option>
+      {% endfor %}
+    </select>
+    <select name="year">
+      {% for value in year_choices %}
+        <option value="{{ value }}" {% if selected_year == value %}selected{% endif %}>Año: {{ value }}</option>
+      {% endfor %}
+    </select>
+    {% if not is_funcionario %}
+      <select name="responsible">
+        <option value="">Todos los responsables</option>
+        {% for item in responsible_choices %}
+          <option value="{{ item.id }}" {% if responsible_filter == item.id|stringformat:'s' %}selected{% endif %}>{{ item.username }}</option>
+        {% endfor %}
+      </select>
+    {% endif %}
+    <button type="submit" class="btn">Filtrar</button>
+  </form>
+  <div class="row-note">Facturas del período activo: <strong>{{ selected_period_label }}</strong></div>
+</div>
+
+<div class="table-wrap">
+  <table class="clients-table">
+    <thead>
+      <tr>
+        <th>Cliente</th>
+        <th>RUC</th>
+        <th>DV</th>
+        <th>Responsable</th>
+        <th>Zona</th>
+        <th>Estado</th>
+        <th>Facturas período ({{ selected_month|stringformat:"02d" }}/{{ selected_year }})</th>
+        <th>Vence</th>
+        {% if can_view_financial %}
+          <th>Deuda</th>
+        {% endif %}
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for client in clients %}
+      <tr>
+        <td><a href="/app/clients/{{ client.id }}/">{{ client.name }}</a></td>
+        <td>{{ client.ruc_base|default:client.ruc|default:"-" }}</td>
+        <td>{{ client.ruc_digit|default:"-" }}</td>
+        <td>{{ client.responsible.username|default:"Sin asignar" }}</td>
+        <td><span class="status-badge zone">{{ client.get_zone_display }}</span></td>
+        <td><span class="status-badge {{ client.status|lower }}">{{ client.get_status_display }}</span></td>
+        <td>
+          <div class="invoice-period-cell">
+            {% if client.invoice_period_record_id_selected %}
+              {% if client.invoice_period_status_selected == 'RECEIVED' %}
+                <span class="status-badge completed">Rec ✓</span>
+              {% elif client.invoice_period_status_selected == 'PARTIAL' %}
+                <span class="status-badge partial">Parc</span>
+              {% else %}
+                <span class="status-badge pending">Pend</span>
+              {% endif %}
+              <form method="post" action="/app/clients/{{ client.id }}/invoice-period-status/" class="invoice-period-inline-form">
+                {% csrf_token %}
+                <input type="hidden" name="invoice_period_status" value="RESET">
+                <input type="hidden" name="month" value="{{ selected_month }}">
+                <input type="hidden" name="year" value="{{ selected_year }}">
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <button type="submit" class="invoice-state-reset" title="Reiniciar selección">↺</button>
+              </form>
+            {% else %}
+              <div class="invoice-period-options">
+                <form method="post" action="/app/clients/{{ client.id }}/invoice-period-status/" class="invoice-period-inline-form">
+                  {% csrf_token %}
+                  <input type="hidden" name="invoice_period_status" value="PENDING">
+                  <input type="hidden" name="month" value="{{ selected_month }}">
+                  <input type="hidden" name="year" value="{{ selected_year }}">
+                  <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                  <button type="submit" class="invoice-state-btn invoice-state-btn-pending">Pend</button>
+                </form>
+                <form method="post" action="/app/clients/{{ client.id }}/invoice-period-status/" class="invoice-period-inline-form">
+                  {% csrf_token %}
+                  <input type="hidden" name="invoice_period_status" value="PARTIAL">
+                  <input type="hidden" name="month" value="{{ selected_month }}">
+                  <input type="hidden" name="year" value="{{ selected_year }}">
+                  <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                  <button type="submit" class="invoice-state-btn invoice-state-btn-partial">Parc</button>
+                </form>
+                <form method="post" action="/app/clients/{{ client.id }}/invoice-period-status/" class="invoice-period-inline-form">
+                  {% csrf_token %}
+                  <input type="hidden" name="invoice_period_status" value="RECEIVED">
+                  <input type="hidden" name="month" value="{{ selected_month }}">
+                  <input type="hidden" name="year" value="{{ selected_year }}">
+                  <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                  <button type="submit" class="invoice-state-btn invoice-state-btn-received">Rec</button>
+                </form>
+              </div>
+            {% endif %}
+          </div>
+        </td>
+        <td>
+          {% if client.due_date %}
+            {% if client.due_date < today %}
+              <span class="status-badge overdue" title="Vencido">{{ client.due_date|date:"j/m/Y" }}</span>
+            {% elif client.due_date <= soon_cutoff %}
+              <span class="status-badge soon" title="Próximo vencimiento">{{ client.due_date|date:"j/m/Y" }}</span>
+            {% else %}
+              <span class="status-badge ok" title="En fecha">{{ client.due_date|date:"j/m/Y" }}</span>
+            {% endif %}
+          {% else %}
+            -
+          {% endif %}
+        </td>
+        {% if can_view_financial %}
+          <td>
+            {% if client.debt_amount > 0 %}
+              <span class="status-badge overdue">{{ client.debt_amount|money:"PYG" }}</span>
+            {% else %}
+              <span class="status-badge paid">{{ 0|money:"PYG" }}</span>
+            {% endif %}
+          </td>
+        {% endif %}
+        <td class="table-actions table-actions-clients">
+          <a class="action-link" href="/app/clients/{{ client.id }}/">Ver ficha</a>
+          {% if can_manage_clients or is_funcionario %}
+            <a class="action-link" href="/app/clients/{{ client.id }}/edit/">Editar</a>
+          {% endif %}
+          <button
+            type="button"
+            class="action-link action-button"
+            onclick="openQuickClientModal(this)"
+            data-client-id="{{ client.id }}"
+            data-client-name="{{ client.name|escape }}"
+            data-client-ruc="{{ client.ruc_base|default:client.ruc|default:'-'|escape }}"
+            data-client-dv="{{ client.ruc_digit|default:'-'|escape }}"
+            data-client-zone="{{ client.get_zone_display|escape }}"
+            data-client-status="{{ client.get_status_display|escape }}"
+            data-client-responsible="{{ client.responsible.username|default:'Sin asignar'|escape }}"
+            data-client-due="{{ client.due_date|default:'-'|escape }}"
+            data-client-debt="{{ client.debt_amount|default:'0'|money:'PYG'|escape }}"
+          >
+            Resumen
+          </button>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="{% if can_view_financial %}10{% else %}9{% endif %}">No hay clientes para los filtros seleccionados.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+
+{% block extra_modals %}
+<div class="modal-overlay" id="quick-client-modal" aria-hidden="true">
+  <div class="modal-window modal-lg">
+    <div class="modal-head">
+      <h3 id="quick-client-title">Resumen de cliente</h3>
+      <button type="button" class="modal-close" data-modal-close="quick-client-modal">Cerrar</button>
+    </div>
+    <div class="modal-body modal-grid">
+      <div class="quick-summary">
+        <div class="summary-item"><div class="label">RUC</div><div class="value" id="quick-client-ruc">-</div></div>
+        <div class="summary-item"><div class="label">DV</div><div class="value" id="quick-client-dv">-</div></div>
+        <div class="summary-item"><div class="label">Zona</div><div class="value" id="quick-client-zone">-</div></div>
+        <div class="summary-item"><div class="label">Estado</div><div class="value" id="quick-client-status">-</div></div>
+        <div class="summary-item"><div class="label">Responsable</div><div class="value" id="quick-client-responsible">-</div></div>
+        <div class="summary-item"><div class="label">Vencimiento</div><div class="value" id="quick-client-due">-</div></div>
+        {% if can_view_financial %}
+          <div class="summary-item"><div class="label">Deuda</div><div class="value" id="quick-client-debt">{{ 0|money:"PYG" }}</div></div>
+        {% endif %}
+      </div>
+      <div class="actions-inline">
+        <a class="btn btn-secondary" id="quick-client-detail-link" href="#">Ver ficha completa</a>
+        <button type="button" class="btn btn-secondary" data-modal-open="quick-note-modal">Nota rápida</button>
+        <button type="button" class="btn btn-secondary" data-modal-open="quick-pending-modal">Pendiente rápido</button>
+        <button type="button" class="btn btn-secondary" data-modal-open="quick-submission-modal">Obligación rápida</button>
+        {% if can_view_financial %}
+          <button type="button" class="btn btn-secondary" data-modal-open="quick-charge-modal">Cobro rápido</button>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="quick-note-modal" aria-hidden="true">
+  <div class="modal-window modal-sm">
+    <div class="modal-head">
+      <h3>Agregar nota</h3>
+      <button type="button" class="modal-close" data-modal-close="quick-note-modal">Cerrar</button>
+    </div>
+    <form id="quick-note-form" method="post" action="">
+      <div class="modal-body modal-grid">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="/app/clients/">
+        <textarea name="note" rows="4" placeholder="Escribí una nota..." required></textarea>
+        <a class="action-link" id="quick-note-fallback" href="#">Abrir formulario completo</a>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" data-modal-close="quick-note-modal">Cancelar</button>
+        <button type="submit" class="btn">Guardar nota</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="quick-pending-modal" aria-hidden="true">
+  <div class="modal-window modal-sm">
+    <div class="modal-head">
+      <h3>Nuevo pendiente</h3>
+      <button type="button" class="modal-close" data-modal-close="quick-pending-modal">Cerrar</button>
+    </div>
+    <form id="quick-pending-form" method="post" action="/app/pending-items/new/">
+      <div class="modal-body modal-grid">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="/app/clients/">
+        <input type="hidden" id="quick-pending-client" name="client" value="">
+        <input type="hidden" name="status" value="OPEN">
+        <input type="text" name="description" placeholder="Descripción" required>
+        <textarea name="missing_documents" rows="3" placeholder="Documentos faltantes"></textarea>
+        <input type="date" name="expected_date">
+        <select name="priority">
+          <option value="OK">Normal</option>
+          <option value="URGENT">Urgente</option>
+        </select>
+        <a class="action-link" id="quick-pending-fallback" href="#">Abrir formulario completo</a>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" data-modal-close="quick-pending-modal">Cancelar</button>
+        <button type="submit" class="btn">Guardar pendiente</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="quick-submission-modal" aria-hidden="true">
+  <div class="modal-window modal-sm">
+    <div class="modal-head">
+      <h3>Registrar obligación fiscal</h3>
+      <button type="button" class="modal-close" data-modal-close="quick-submission-modal">Cerrar</button>
+    </div>
+    <form id="quick-submission-form" method="post" action="/app/submissions/new/">
+      <div class="modal-body modal-grid">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="/app/clients/">
+        <input type="hidden" id="quick-submission-client" name="client" value="">
+        <select name="obligation">
+          <option value="">Obligación (opcional)</option>
+          {% for item in obligation_choices %}
+            <option value="{{ item.id }}">{{ item.name }}{% if item.form_code %} (F{{ item.form_code }}){% endif %}</option>
+          {% endfor %}
+        </select>
+        <input type="text" name="submission_type" placeholder="Tipo de obligación (fallback)" required>
+        <select name="period_kind">
+          <option value="">Período (auto)</option>
+          <option value="MONTHLY">Mensual</option>
+          <option value="ANNUAL">Anual</option>
+          <option value="OTHER">Otro</option>
+        </select>
+        <input type="number" name="period_year" min="2000" max="2100" placeholder="Año de período (ej: 2026)">
+        <select name="period_month">
+          <option value="">Mes (opcional)</option>
+          <option value="1">01</option>
+          <option value="2">02</option>
+          <option value="3">03</option>
+          <option value="4">04</option>
+          <option value="5">05</option>
+          <option value="6">06</option>
+          <option value="7">07</option>
+          <option value="8">08</option>
+          <option value="9">09</option>
+          <option value="10">10</option>
+          <option value="11">11</option>
+          <option value="12">12</option>
+        </select>
+        <input type="date" name="due_date">
+        <input type="date" name="submitted_at">
+        <select name="status">
+          <option value="PENDING">Pendiente</option>
+          <option value="SUBMITTED">Presentado</option>
+          <option value="LATE">Vencido</option>
+        </select>
+        <textarea name="notes" rows="3" placeholder="Observaciones"></textarea>
+        <a class="action-link" id="quick-submission-fallback" href="#">Abrir formulario completo</a>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" data-modal-close="quick-submission-modal">Cancelar</button>
+        <button type="submit" class="btn">Guardar obligación</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% if can_view_financial %}
+<div class="modal-overlay" id="quick-charge-modal" aria-hidden="true">
+  <div class="modal-window modal-sm">
+    <div class="modal-head">
+      <h3>Registrar cobro</h3>
+      <button type="button" class="modal-close" data-modal-close="quick-charge-modal">Cerrar</button>
+    </div>
+    <form id="quick-charge-form" method="post" action="/app/charges/new/">
+      <div class="modal-body modal-grid">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="/app/clients/">
+        <input type="hidden" id="quick-charge-client" name="client" value="">
+        <input type="hidden" name="contract" value="">
+        <input type="date" name="period_month" required>
+        <input type="number" step="0.01" name="amount" placeholder="Monto" required>
+        <input type="number" step="0.01" name="debt_amount" placeholder="Deuda" value="0">
+        <select name="currency">
+          <option value="PYG">Guaraní</option>
+          <option value="USD">Dólar</option>
+        </select>
+        <select name="payment_type">
+          <option value="HONORARIOS">Honorarios</option>
+          <option value="IMPUESTOS">Impuestos</option>
+          <option value="OTROS">Otros</option>
+        </select>
+        <select name="status">
+          <option value="PENDING">Pendiente</option>
+          <option value="PAID">Pagado</option>
+        </select>
+        <textarea name="notes" rows="3" placeholder="Observaciones"></textarea>
+        <a class="action-link" id="quick-charge-fallback" href="#">Abrir formulario completo</a>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" data-modal-close="quick-charge-modal">Cancelar</button>
+        <button type="submit" class="btn">Guardar cobro</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  function setText(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value || "-";
+  }
+
+  function setHref(id, href) {
+    const el = document.getElementById(id);
+    if (el) el.setAttribute("href", href);
+  }
+
+  window.openQuickClientModal = function openQuickClientModal(button) {
+    const clientId = button.getAttribute("data-client-id");
+    const name = button.getAttribute("data-client-name") || "Cliente";
+
+    setText("quick-client-title", "Resumen: " + name);
+    setText("quick-client-ruc", button.getAttribute("data-client-ruc"));
+    setText("quick-client-dv", button.getAttribute("data-client-dv"));
+    setText("quick-client-zone", button.getAttribute("data-client-zone"));
+    setText("quick-client-status", button.getAttribute("data-client-status"));
+    setText("quick-client-responsible", button.getAttribute("data-client-responsible"));
+    setText("quick-client-due", button.getAttribute("data-client-due"));
+    setText("quick-client-debt", button.getAttribute("data-client-debt"));
+
+    const detailUrl = "/app/clients/" + clientId + "/";
+    setHref("quick-client-detail-link", detailUrl);
+
+    const noteForm = document.getElementById("quick-note-form");
+    if (noteForm) {
+      noteForm.setAttribute("action", "/app/clients/" + clientId + "/notes/new/");
+      noteForm.querySelector("input[name='next']").value = window.location.pathname + window.location.search;
+    }
+    setHref("quick-note-fallback", "/app/clients/" + clientId + "/");
+
+    const pendingClient = document.getElementById("quick-pending-client");
+    if (pendingClient) pendingClient.value = clientId;
+    const pendingForm = document.getElementById("quick-pending-form");
+    if (pendingForm) pendingForm.querySelector("input[name='next']").value = window.location.pathname + window.location.search;
+    setHref("quick-pending-fallback", "/app/pending-items/new/?client=" + clientId);
+
+    const submissionClient = document.getElementById("quick-submission-client");
+    if (submissionClient) submissionClient.value = clientId;
+    const submissionForm = document.getElementById("quick-submission-form");
+    if (submissionForm) submissionForm.querySelector("input[name='next']").value = window.location.pathname + window.location.search;
+    setHref("quick-submission-fallback", "/app/submissions/new/?client=" + clientId);
+
+    const chargeClient = document.getElementById("quick-charge-client");
+    if (chargeClient) chargeClient.value = clientId;
+    const chargeForm = document.getElementById("quick-charge-form");
+    if (chargeForm) chargeForm.querySelector("input[name='next']").value = window.location.pathname + window.location.search;
+    setHref("quick-charge-fallback", "/app/charges/new/?client=" + clientId);
+
+    window.hbcOpenModal("quick-client-modal");
+  };
+})();
+</script>
+{% endblock %}

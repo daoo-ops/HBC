@@ -1,0 +1,416 @@
+{% extends "base.html" %}
+{% block title %}Obligaciones fiscales{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h2>Obligaciones fiscales</h2>
+  <a class="btn" href="/app/submissions/new/">Registrar obligación</a>
+</div>
+
+<div class="cards">
+  <article class="card compact"><h3>Activas</h3><p>{{ active_items|length }}</p></article>
+  <article class="card compact"><h3>Finalizadas recientes</h3><p>{{ submitted_items|length }}</p></article>
+  <article class="card compact"><h3>Archivadas</h3><p>{{ archived_items|length }}</p></article>
+</div>
+
+<div class="panel">
+  <div class="scope-tabs">
+    <a href="/app/submissions/?scope=active" class="scope-tab {% if scope == 'active' %}active{% endif %}">Activas</a>
+    <a href="/app/submissions/?scope=submitted" class="scope-tab {% if scope == 'submitted' %}active{% endif %}">Finalizadas recientes</a>
+    <a href="/app/submissions/?scope=archived" class="scope-tab {% if scope == 'archived' %}active{% endif %}">Archivadas</a>
+    <a href="/app/submissions/?scope=history" class="scope-tab {% if scope == 'history' %}active{% endif %}">Historial reciente</a>
+  </div>
+</div>
+
+<div class="panel">
+  <form method="get" class="filters">
+    <input type="hidden" name="scope" value="{{ scope }}">
+    <input type="text" name="q" placeholder="Cliente, RUC, obligación o formulario" value="{{ q }}">
+    <select name="status">
+      <option value="">Todos los estados</option>
+      {% for value,label in status_choices %}
+        <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <select name="obligation">
+      <option value="">Todas las obligaciones</option>
+      {% for item in obligation_choices %}
+        <option value="{{ item.id }}" {% if obligation_filter == item.id|stringformat:'s' %}selected{% endif %}>
+          {{ item.name }}{% if item.form_code %} (F{{ item.form_code }}){% endif %}
+        </option>
+      {% endfor %}
+    </select>
+    <select name="period_year">
+      <option value="">Todos los años</option>
+      {% for year in year_choices %}
+        <option value="{{ year }}" {% if period_year_filter == year|stringformat:'s' %}selected{% endif %}>{{ year }}</option>
+      {% endfor %}
+    </select>
+    <select name="period_month">
+      <option value="">Todos los meses</option>
+      {% for month,label in month_choices %}
+        <option value="{{ month }}" {% if period_month_filter == month|stringformat:'s' %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <button class="btn">Filtrar</button>
+  </form>
+</div>
+
+{% if scope == 'active' %}
+{% if active_regular_items %}
+<div class="panel" data-collapsible-id="submissions-active-regular-list">
+  <div class="collapse-head">
+    <h3>Activas</h3>
+    <div class="actions-inline">
+      <span class="status-badge info">{{ active_regular_items|length }}</span>
+      <button type="button" class="collapse-toggle">Colapsar</button>
+    </div>
+  </div>
+  <div class="collapse-body">
+    <div class="table-wrap compact-table"><table>
+      <thead><tr><th>Cliente</th><th>Obligación</th><th>Formulario</th><th>Período</th><th>Vencimiento</th><th>Estado</th><th>Acciones</th></tr></thead>
+      <tbody>
+      {% for item in active_regular_items %}
+      <tr>
+        <td><a href="/app/clients/{{ item.client_id }}/">{{ item.client.name }}</a></td>
+        <td>{{ item.obligation_name_display }} {% if item.needs_manual_review %}<span class="status-badge warning">Revisar</span>{% endif %}</td>
+        <td>{{ item.obligation_form_display }}</td>
+        <td>{{ item.period_display }}</td>
+        <td>{{ item.due_date|default:"-" }}</td>
+        <td><span class="status-badge pending">Pendiente</span></td>
+        <td class="table-actions submission-table-actions">
+          <a class="action-link" href="/app/submissions/{{ item.id }}/edit/">Editar</a>
+          <form method="post" action="/app/submissions/{{ item.id }}/mark-submitted/" class="inline inline-action">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <button type="submit" class="submission-action-btn submission-action-btn-present" data-submit-label="Presentado">Presentar</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  </div>
+</div>
+{% endif %}
+
+{% if overdue_items %}
+<div class="panel" data-collapsible-id="submissions-overdue-list">
+  <div class="collapse-head">
+    <h3>Atrasadas</h3>
+    <div class="actions-inline">
+      <span class="status-badge overdue">{{ overdue_items|length }}</span>
+      <button type="button" class="collapse-toggle">Colapsar</button>
+    </div>
+  </div>
+  <div class="collapse-body">
+    <div class="table-wrap compact-table"><table>
+      <thead><tr><th>Cliente</th><th>Obligación</th><th>Formulario</th><th>Período</th><th>Vencimiento</th><th>Estado</th><th>Acciones</th></tr></thead>
+      <tbody>
+      {% for item in overdue_items %}
+      <tr>
+        <td><a href="/app/clients/{{ item.client_id }}/">{{ item.client.name }}</a></td>
+        <td>{{ item.obligation_name_display }} {% if item.needs_manual_review %}<span class="status-badge warning">Revisar</span>{% endif %}</td>
+        <td>{{ item.obligation_form_display }}</td>
+        <td>{{ item.period_display }}</td>
+        <td>{{ item.due_date|default:"-" }}</td>
+        <td><span class="status-badge overdue">Atrasada</span></td>
+        <td class="table-actions submission-table-actions">
+          <a class="action-link" href="/app/submissions/{{ item.id }}/edit/">Editar</a>
+          <form method="post" action="/app/submissions/{{ item.id }}/mark-submitted/" class="inline inline-action">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <button type="submit" class="submission-action-btn submission-action-btn-present" data-submit-label="Presentado">Presentar</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  </div>
+</div>
+{% endif %}
+
+{% if due_today_items %}
+<div class="panel" data-collapsible-id="submissions-due-today-list">
+  <div class="collapse-head">
+    <h3>Vencen hoy</h3>
+    <div class="actions-inline">
+      <span class="status-badge urgent">{{ due_today_items|length }}</span>
+      <button type="button" class="collapse-toggle">Colapsar</button>
+    </div>
+  </div>
+  <div class="collapse-body">
+    <div class="table-wrap compact-table"><table>
+      <thead><tr><th>Cliente</th><th>Obligación</th><th>Formulario</th><th>Período</th><th>Vencimiento</th><th>Estado</th><th>Acciones</th></tr></thead>
+      <tbody>
+      {% for item in due_today_items %}
+      <tr>
+        <td><a href="/app/clients/{{ item.client_id }}/">{{ item.client.name }}</a></td>
+        <td>{{ item.obligation_name_display }} {% if item.needs_manual_review %}<span class="status-badge warning">Revisar</span>{% endif %}</td>
+        <td>{{ item.obligation_form_display }}</td>
+        <td>{{ item.period_display }}</td>
+        <td>{{ item.due_date|default:"-" }}</td>
+        <td><span class="status-badge urgent">Hoy</span></td>
+        <td class="table-actions submission-table-actions">
+          <a class="action-link" href="/app/submissions/{{ item.id }}/edit/">Editar</a>
+          <form method="post" action="/app/submissions/{{ item.id }}/mark-submitted/" class="inline inline-action">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <button type="submit" class="submission-action-btn submission-action-btn-present" data-submit-label="Presentado">Presentar</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  </div>
+</div>
+{% endif %}
+
+{% if due_week_items %}
+<div class="panel" data-collapsible-id="submissions-due-week-list">
+  <div class="collapse-head">
+    <h3>Vencen esta semana</h3>
+    <div class="actions-inline">
+      <span class="status-badge soon">{{ due_week_items|length }}</span>
+      <button type="button" class="collapse-toggle">Colapsar</button>
+    </div>
+  </div>
+  <div class="collapse-body">
+    <div class="table-wrap compact-table"><table>
+      <thead><tr><th>Cliente</th><th>Obligación</th><th>Formulario</th><th>Período</th><th>Vencimiento</th><th>Estado</th><th>Acciones</th></tr></thead>
+      <tbody>
+      {% for item in due_week_items %}
+      <tr>
+        <td><a href="/app/clients/{{ item.client_id }}/">{{ item.client.name }}</a></td>
+        <td>{{ item.obligation_name_display }} {% if item.needs_manual_review %}<span class="status-badge warning">Revisar</span>{% endif %}</td>
+        <td>{{ item.obligation_form_display }}</td>
+        <td>{{ item.period_display }}</td>
+        <td>{{ item.due_date|default:"-" }}</td>
+        <td><span class="status-badge soon">Próxima</span></td>
+        <td class="table-actions submission-table-actions">
+          <a class="action-link" href="/app/submissions/{{ item.id }}/edit/">Editar</a>
+          <form method="post" action="/app/submissions/{{ item.id }}/mark-submitted/" class="inline inline-action">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <button type="submit" class="submission-action-btn submission-action-btn-present" data-submit-label="Presentado">Presentar</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  </div>
+</div>
+{% endif %}
+
+{% if unscheduled_items %}
+<div class="panel" data-collapsible-id="submissions-unscheduled-list">
+  <div class="collapse-head">
+    <h3>Activas sin fecha definida</h3>
+    <div class="actions-inline">
+      <span class="status-badge pending">{{ unscheduled_items|length }}</span>
+      <button type="button" class="collapse-toggle">Colapsar</button>
+    </div>
+  </div>
+  <div class="collapse-body">
+    <div class="table-wrap compact-table"><table>
+      <thead><tr><th>Cliente</th><th>Obligación</th><th>Formulario</th><th>Período</th><th>Estado</th><th>Acciones</th></tr></thead>
+      <tbody>
+      {% for item in unscheduled_items %}
+      <tr>
+        <td><a href="/app/clients/{{ item.client_id }}/">{{ item.client.name }}</a></td>
+        <td>{{ item.obligation_name_display }} {% if item.needs_manual_review %}<span class="status-badge warning">Revisar</span>{% endif %}</td>
+        <td>{{ item.obligation_form_display }}</td>
+        <td>{{ item.period_display }}</td>
+        <td><span class="status-badge pending">Pendiente</span></td>
+        <td class="table-actions submission-table-actions">
+          <a class="action-link" href="/app/submissions/{{ item.id }}/edit/">Editar</a>
+          <form method="post" action="/app/submissions/{{ item.id }}/mark-submitted/" class="inline inline-action">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <button type="submit" class="submission-action-btn submission-action-btn-present" data-submit-label="Presentado">Presentar</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  </div>
+</div>
+{% endif %}
+
+{% if not active_items %}
+<div class="panel">
+  <p class="dashboard-empty-inline">Sin obligaciones activas para los filtros seleccionados.</p>
+</div>
+{% endif %}
+{% endif %}
+
+{% if scope == 'submitted' %}
+<div class="panel" data-collapsible-id="submissions-submitted-list">
+  <div class="collapse-head">
+    <h3>Finalizadas recientes</h3>
+    <div class="actions-inline">
+      <span class="status-badge submitted">{{ submitted_items|length }}</span>
+      <button type="button" class="collapse-toggle">Colapsar</button>
+    </div>
+  </div>
+  <div class="collapse-body">
+    <div class="table-wrap compact-table"><table>
+      <thead><tr><th>Cliente</th><th>Obligación</th><th>Formulario</th><th>Período</th><th>Finalizado</th><th>Estado</th><th>Acciones</th></tr></thead>
+      <tbody>
+      {% for item in submitted_items %}
+      <tr>
+        <td><a href="/app/clients/{{ item.client_id }}/">{{ item.client.name }}</a></td>
+        <td>{{ item.obligation_name_display }} {% if item.needs_manual_review %}<span class="status-badge warning">Revisar</span>{% endif %}</td>
+        <td>{{ item.obligation_form_display }}</td>
+        <td>{{ item.period_display }}</td>
+        <td>{{ item.submitted_at|default:"-" }}</td>
+        <td><span class="status-badge submitted">Finalizado</span></td>
+        <td class="table-actions submission-table-actions">
+          <a class="action-link" href="/app/submissions/{{ item.id }}/edit/">Editar</a>
+          <form method="post" action="/app/submissions/{{ item.id }}/reactivate/" class="inline inline-action">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <button type="submit" class="submission-action-btn submission-action-btn-reactivate">Reactivar</button>
+          </form>
+          <form method="post" action="/app/submissions/{{ item.id }}/archive/" class="inline inline-action">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <button type="submit" class="submission-action-btn submission-action-btn-archive">Archivar</button>
+          </form>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="7">Sin obligaciones finalizadas recientes.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  </div>
+</div>
+{% endif %}
+
+{% if scope == 'archived' %}
+<div class="panel" data-collapsible-id="submissions-archived-list">
+  <div class="collapse-head">
+    <h3>Archivadas</h3>
+    <div class="actions-inline">
+      <span class="status-badge archived">{{ archived_items|length }}</span>
+      <button type="button" class="collapse-toggle">Colapsar</button>
+    </div>
+  </div>
+  <div class="collapse-body">
+    <div class="table-wrap compact-table"><table>
+      <thead><tr><th>Cliente</th><th>Obligación</th><th>Formulario</th><th>Período</th><th>Archivado</th><th>Archivado por</th><th>Acciones</th></tr></thead>
+      <tbody>
+      {% for item in archived_items %}
+      <tr>
+        <td><a href="/app/clients/{{ item.client_id }}/">{{ item.client.name }}</a></td>
+        <td>{{ item.obligation_name_display }} {% if item.needs_manual_review %}<span class="status-badge warning">Revisar</span>{% endif %}</td>
+        <td>{{ item.obligation_form_display }}</td>
+        <td>{{ item.period_display }}</td>
+        <td>{{ item.archived_at|date:"Y-m-d H:i"|default:"-" }}</td>
+        <td>{{ item.archived_by|default:"-" }}</td>
+        <td class="table-actions submission-table-actions">
+          <a class="action-link" href="/app/submissions/{{ item.id }}/edit/">Editar</a>
+          <form method="post" action="/app/submissions/{{ item.id }}/reopen/" class="inline inline-action">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <button type="submit" class="submission-action-btn submission-action-btn-reopen">Reabrir</button>
+          </form>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="7">Sin obligaciones archivadas.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  </div>
+</div>
+{% endif %}
+
+{% if scope == 'history' %}
+<div class="panel" data-collapsible-id="submissions-history-list">
+  <div class="collapse-head">
+    <h3>Historial reciente</h3>
+    <div class="actions-inline">
+      <span class="status-badge info">{{ history_items|length }}</span>
+      <button type="button" class="collapse-toggle">Colapsar</button>
+    </div>
+  </div>
+  <div class="collapse-body">
+    <div class="table-wrap compact-table"><table>
+      <thead><tr><th>Cliente</th><th>Obligación</th><th>Formulario</th><th>Período</th><th>Último movimiento</th><th>Estado</th><th>Acciones</th></tr></thead>
+      <tbody>
+      {% for item in history_items %}
+      <tr>
+        <td><a href="/app/clients/{{ item.client_id }}/">{{ item.client.name }}</a></td>
+        <td>{{ item.obligation_name_display }} {% if item.needs_manual_review %}<span class="status-badge warning">Revisar</span>{% endif %}</td>
+        <td>{{ item.obligation_form_display }}</td>
+        <td>{{ item.period_display }}</td>
+        <td>
+          {% if item.is_archived %}
+            {% if item.archived_at %}
+              {{ item.archived_at|date:"Y-m-d H:i" }}
+            {% else %}
+              {{ item.updated_at|date:"Y-m-d H:i" }}
+            {% endif %}
+          {% elif item.status == 'SUBMITTED' %}
+            {% if item.submitted_at %}
+              {{ item.submitted_at }}
+            {% else %}
+              {{ item.updated_at|date:"Y-m-d" }}
+            {% endif %}
+          {% else %}
+            {{ item.updated_at|date:"Y-m-d H:i" }}
+          {% endif %}
+        </td>
+        <td>
+          {% if item.is_archived %}
+            <span class="status-badge archived">Archivada</span>
+          {% elif item.status == 'SUBMITTED' %}
+            <span class="status-badge submitted">Finalizada</span>
+          {% elif item.status == 'LATE' %}
+            <span class="status-badge overdue">Atrasada</span>
+          {% else %}
+            <span class="status-badge pending">Activa</span>
+          {% endif %}
+        </td>
+        <td class="table-actions submission-table-actions">
+          <a class="action-link" href="/app/submissions/{{ item.id }}/edit/">Editar</a>
+          {% if item.is_archived %}
+          <form method="post" action="/app/submissions/{{ item.id }}/reopen/" class="inline inline-action">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <button type="submit" class="submission-action-btn submission-action-btn-reopen">Reabrir</button>
+          </form>
+          {% elif item.status == 'SUBMITTED' %}
+          <form method="post" action="/app/submissions/{{ item.id }}/reactivate/" class="inline inline-action">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <button type="submit" class="submission-action-btn submission-action-btn-reactivate">Reactivar</button>
+          </form>
+          <form method="post" action="/app/submissions/{{ item.id }}/archive/" class="inline inline-action">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <button type="submit" class="submission-action-btn submission-action-btn-archive">Archivar</button>
+          </form>
+          {% else %}
+          <form method="post" action="/app/submissions/{{ item.id }}/mark-submitted/" class="inline inline-action">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <button type="submit" class="submission-action-btn submission-action-btn-present" data-submit-label="Presentado">Presentar</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="7">Sin historial reciente.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

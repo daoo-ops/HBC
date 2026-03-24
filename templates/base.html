@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <title>{% block title %}HBC Sistema{% endblock %}</title>
+  <link rel="stylesheet" href="/static/css/app.css?v=20260320-2">
+  {% block extra_head %}{% endblock %}
+  <script>
+    if (localStorage.getItem('hbc:theme') === 'light') {
+      document.documentElement.setAttribute('data-theme', 'light');
+    }
+  </script>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="logo">
+        <h1>HBC</h1>
+        <div class="logo-sub">Consultoria interna</div>
+        <div class="logo-clock" id="sidebar-clock">--:--:--</div>
+        <div class="logo-date" id="sidebar-date">--/--/----</div>
+      </div>
+      <nav class="nav-menu">
+        <div class="nav-sec">Principal</div>
+        <a class="nav-link {% if request.path == '/dashboard/' %}active{% endif %}" href="/dashboard/">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          Inicio
+        </a>
+        <div class="nav-sec">Operativo</div>
+        <a class="nav-link {% if request.path|slice:':13' == '/app/clients/' %}active{% endif %}" href="/app/clients/">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+          Clientes
+        </a>
+        <a class="nav-link {% if request.path|slice:':19' == '/app/pending-items/' %}active{% endif %}" href="/app/pending-items/">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M10.29 3.86 1.82 18A2 2 0 0 0 3.53 21h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          Pendientes
+        </a>
+        <a class="nav-link {% if request.path|slice:':17' == '/app/submissions/' %}active{% endif %}" href="/app/submissions/">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          Obligaciones fiscales
+        </a>
+        <a class="nav-link {% if request.path|slice:':21' == '/app/tax-commitments/' %}active{% endif %}" href="/app/tax-commitments/">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="14" x2="16" y2="14"/></svg>
+          Compromisos tributarios
+        </a>
+        <a class="nav-link {% if request.path|slice:':11' == '/app/banks/' %}active{% endif %}" href="/app/banks/">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M7 15h4"/></svg>
+          Bancos y recibos
+        </a>
+        {% if request.user.role == 'MASTER' or request.user.role == 'ADMIN' %}
+          <div class="nav-sec">Administración</div>
+          <a class="nav-link {% if request.path|slice:':18' == '/app/payment-logs/' %}active{% endif %}" href="/app/payment-logs/">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 7 9 18l-5-5"/><rect x="3" y="4" width="18" height="16" rx="2"/></svg>
+            Bitácora de pagos
+          </a>
+          <a class="nav-link {% if request.path|slice:':13' == '/app/charges/' %}active{% endif %}" href="/app/charges/">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+            Cobros/Pagos (legacy)
+          </a>
+          <a class="nav-link {% if request.path|slice:':15' == '/app/contracts/' %}active{% endif %}" href="/app/contracts/">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 2h9l5 5v15a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/><polyline points="14 2 14 8 20 8"/></svg>
+            Contratos
+          </a>
+          <a class="nav-link" href="/admin/" target="_blank" rel="noopener">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 0 1 0 2.8 2 2 0 0 1-2.8 0l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.2a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.2a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h.1a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.2a1.7 1.7 0 0 0 1 1.5h.1a1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 0 1 2.8 0 2 2 0 0 1 0 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v.1a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.2a1.7 1.7 0 0 0-1.5 1z"/></svg>
+            Admin
+          </a>
+        {% endif %}
+      </nav>
+      <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Alternar modo claro/oscuro">
+        <svg class="icon icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        <svg class="icon icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <span class="theme-toggle-text">Modo Claro</span>
+      </button>
+      <div class="user-box">
+        <strong>{{ request.user.username }}</strong>
+        <span>{{ request.user.role }}</span>
+      </div>
+      <a class="logout" href="/logout/">Cerrar sesión</a>
+    </aside>
+
+    <main class="main">
+      {% if request.user.is_authenticated %}
+      <div class="notif-shell" id="notif-shell">
+        <button
+          type="button"
+          class="notif-bell"
+          id="notif-bell"
+          aria-label="Abrir notificaciones"
+          aria-expanded="false"
+        >
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"></path>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+          </svg>
+          <span class="notif-count" id="notif-count" hidden>0</span>
+        </button>
+        <div class="notif-panel" id="notif-panel" hidden>
+          <div class="empty-row">Cargando notificaciones...</div>
+        </div>
+      </div>
+      {% endif %}
+      {% if messages %}
+      <div class="messages">
+        {% for message in messages %}
+          <div class="message {{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+  {% block extra_modals %}{% endblock %}
+  <script>
+  (function () {
+    function tickClock() {
+      const now = new Date();
+      const clock = document.getElementById("sidebar-clock");
+      const date = document.getElementById("sidebar-date");
+      if (clock) {
+        clock.textContent = now.toLocaleTimeString("es-PY");
+      }
+      if (date) {
+        date.textContent = now.toLocaleDateString("es-PY", {
+          weekday: "short",
+          day: "2-digit",
+          month: "short",
+          year: "numeric"
+        });
+      }
+    }
+    tickClock();
+    setInterval(tickClock, 1000);
+
+    const body = document.body;
+    const modalStack = [];
+
+    function lockScroll() {
+      body.style.overflow = modalStack.length ? "hidden" : "";
+    }
+
+    window.hbcOpenModal = function hbcOpenModal(modalId) {
+      const modal = document.getElementById(modalId);
+      if (!modal) return;
+      if (!modal.classList.contains("open")) {
+        modal.classList.add("open");
+        modal.removeAttribute("aria-hidden");
+        modalStack.push(modalId);
+      }
+      lockScroll();
+    };
+
+    window.hbcCloseModal = function hbcCloseModal(modalId) {
+      const modal = document.getElementById(modalId);
+      if (!modal) return;
+      modal.classList.remove("open");
+      modal.setAttribute("aria-hidden", "true");
+      const index = modalStack.lastIndexOf(modalId);
+      if (index >= 0) modalStack.splice(index, 1);
+      lockScroll();
+    };
+
+    document.querySelectorAll("[data-modal-open]").forEach((trigger) => {
+      trigger.addEventListener("click", function () {
+        const modalId = this.getAttribute("data-modal-open");
+        if (modalId) window.hbcOpenModal(modalId);
+      });
+    });
+
+    document.querySelectorAll("[data-modal-close]").forEach((trigger) => {
+      trigger.addEventListener("click", function () {
+        const modalId = this.getAttribute("data-modal-close");
+        if (modalId) window.hbcCloseModal(modalId);
+      });
+    });
+
+    document.querySelectorAll(".modal-overlay").forEach((overlay) => {
+      overlay.addEventListener("click", function (event) {
+        if (event.target === overlay) {
+          const modalId = overlay.getAttribute("id");
+          if (modalId) window.hbcCloseModal(modalId);
+        }
+      });
+    });
+
+    document.addEventListener("keydown", function (event) {
+      if (event.key !== "Escape") return;
+      const latest = modalStack[modalStack.length - 1];
+      if (latest) window.hbcCloseModal(latest);
+    });
+
+    document.addEventListener('submit', function (event) {
+      const form = event.target;
+      if (!(form instanceof HTMLFormElement)) return;
+      const button = form.querySelector('[data-submit-label]');
+      if (!button || button.disabled) return;
+      const nextLabel = button.getAttribute('data-submit-label');
+      if (!nextLabel) return;
+      button.textContent = nextLabel;
+      button.disabled = true;
+      button.setAttribute('aria-disabled', 'true');
+      button.classList.add('is-busy');
+    });
+
+    const sections = document.querySelectorAll('[data-collapsible-id]');
+    let collapseStorage = null;
+    try {
+      collapseStorage = window.sessionStorage;
+    } catch (error) {
+      collapseStorage = null;
+    }
+    sections.forEach((section) => {
+      const id = section.getAttribute('data-collapsible-id');
+      const body = section.querySelector('.collapse-body');
+      const toggle = section.querySelector('[data-collapse-toggle], .collapse-toggle');
+      if (!id || !body || !toggle) return;
+
+      const storageKey = 'hbc:collapse:' + id;
+      const defaultCollapsed = section.getAttribute('data-collapsible-default') === 'collapsed';
+
+      function applyState(collapsed) {
+        section.classList.toggle('is-collapsed', collapsed);
+        body.hidden = collapsed;
+        const chevron = toggle.querySelector('.collapse-chevron');
+        if (chevron) {
+          chevron.textContent = collapsed ? '▸' : '▾';
+        } else {
+          toggle.textContent = collapsed ? 'Expandir' : 'Colapsar';
+        }
+        toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+      }
+
+      const storedValue = collapseStorage ? collapseStorage.getItem(storageKey) : null;
+      const initialCollapsed = storedValue === null ? defaultCollapsed : storedValue === '1';
+      applyState(initialCollapsed);
+
+      toggle.addEventListener('click', function (event) {
+        event.preventDefault();
+        const nextCollapsed = !section.classList.contains('is-collapsed');
+        if (collapseStorage) {
+          collapseStorage.setItem(storageKey, nextCollapsed ? '1' : '0');
+        }
+        applyState(nextCollapsed);
+      });
+    });
+
+    const notifShell = document.getElementById("notif-shell");
+    const notifBell = document.getElementById("notif-bell");
+    const notifPanel = document.getElementById("notif-panel");
+    const notifCount = document.getElementById("notif-count");
+
+    function mountNotificationShell() {
+      if (!notifShell) return;
+      const pageHead = document.querySelector(".main .page-head");
+      if (!pageHead) return;
+
+      const firstChild = pageHead.firstElementChild;
+      let actionWrap = null;
+      const directActionWrap = Array.from(pageHead.children).find((child) => child.classList.contains("actions-inline"));
+      if (directActionWrap) {
+        actionWrap = directActionWrap;
+      } else {
+        actionWrap = document.createElement("div");
+        actionWrap.className = "actions-inline page-head-inline-actions";
+        Array.from(pageHead.children).forEach((child) => {
+          if (child !== firstChild) actionWrap.appendChild(child);
+        });
+        pageHead.appendChild(actionWrap);
+      }
+
+      actionWrap.appendChild(notifShell);
+    }
+
+    function getCookie(name) {
+      const cookies = document.cookie ? document.cookie.split(";") : [];
+      for (let i = 0; i < cookies.length; i += 1) {
+        const cookie = cookies[i].trim();
+        if (cookie.startsWith(name + "=")) {
+          return decodeURIComponent(cookie.slice(name.length + 1));
+        }
+      }
+      return "";
+    }
+
+    function updateNotifCount(count) {
+      if (!notifCount) return;
+      const value = Number(count || 0);
+      notifCount.textContent = String(value);
+      notifCount.hidden = value <= 0;
+    }
+
+    function closeNotifPanel() {
+      if (!notifShell || !notifPanel || !notifBell) return;
+      notifShell.classList.remove("open");
+      notifPanel.hidden = true;
+      notifBell.setAttribute("aria-expanded", "false");
+    }
+
+    function openNotifPanel() {
+      if (!notifShell || !notifPanel || !notifBell) return;
+      notifShell.classList.add("open");
+      notifPanel.hidden = false;
+      notifBell.setAttribute("aria-expanded", "true");
+    }
+
+    function fetchNotifPanel() {
+      if (!notifPanel) return Promise.resolve();
+      return fetch("/app/notifications/panel/", {
+        headers: { "X-Requested-With": "XMLHttpRequest" },
+        credentials: "same-origin",
+      })
+        .then((response) => {
+          if (!response.ok) throw new Error("panel");
+          return response.json();
+        })
+        .then((payload) => {
+          notifPanel.innerHTML = payload.html || '<div class="empty-row">Sin notificaciones.</div>';
+          updateNotifCount(payload.unread_count || 0);
+        })
+        .catch(() => {
+          notifPanel.innerHTML = '<div class="empty-row">No se pudo actualizar notificaciones.</div>';
+        });
+    }
+
+    function markNotificationsRead() {
+      return fetch("/app/notifications/mark-read/", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          "X-CSRFToken": getCookie("csrftoken"),
+          "X-Requested-With": "XMLHttpRequest",
+        },
+      }).catch(() => null);
+    }
+
+    if (notifBell && notifPanel && notifShell) {
+      mountNotificationShell();
+
+      notifBell.addEventListener("click", function (event) {
+        event.stopPropagation();
+        const isOpen = notifShell.classList.contains("open");
+        if (isOpen) {
+          closeNotifPanel();
+          return;
+        }
+        openNotifPanel();
+        markNotificationsRead().finally(fetchNotifPanel);
+      });
+
+      document.addEventListener("click", function (event) {
+        if (!notifShell.classList.contains("open")) return;
+        if (notifShell.contains(event.target)) return;
+        closeNotifPanel();
+      });
+
+      fetchNotifPanel();
+      setInterval(fetchNotifPanel, 15000);
+    }
+
+    const themeToggleBtn = document.getElementById('theme-toggle');
+    const themeToggleText = themeToggleBtn ? themeToggleBtn.querySelector('.theme-toggle-text') : null;
+
+    function updateThemeBtn(isLight) {
+      if (!themeToggleBtn) return;
+      if (isLight) {
+        themeToggleBtn.classList.add('is-light');
+        if (themeToggleText) themeToggleText.textContent = 'Modo Oscuro';
+      } else {
+        themeToggleBtn.classList.remove('is-light');
+        if (themeToggleText) themeToggleText.textContent = 'Modo Claro';
+      }
+    }
+
+    if (themeToggleBtn) {
+      const isLightStart = document.documentElement.getAttribute('data-theme') === 'light';
+      updateThemeBtn(isLightStart);
+
+      themeToggleBtn.addEventListener('click', function() {
+        const isNowLight = document.documentElement.getAttribute('data-theme') === 'light';
+        if (isNowLight) {
+          document.documentElement.removeAttribute('data-theme');
+          localStorage.setItem('hbc:theme', 'dark');
+          updateThemeBtn(false);
+        } else {
+          document.documentElement.setAttribute('data-theme', 'light');
+          localStorage.setItem('hbc:theme', 'light');
+          updateThemeBtn(true);
+        }
+      });
+    }
+  })();
+  </script>
+  <script src="/static/js/client_picker.js?v=20260313-1"></script>
+  {% block extra_js %}{% endblock %}
+  <script>
+  /* ─── HBC Enhancements ─── */
+  (function () {
+    /* Activate CSS entrance animations */
+    document.body.classList.add('anim-ready');
+
+    /* ── Notification sound: fires ONLY when unread count increases ── */
+    let _audioCtx = null;
+    let _lastUnreadCount = 0;
+
+    function getAudioCtx() {
+      if (!_audioCtx) {
+        try { _audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
+      }
+      if (_audioCtx && _audioCtx.state === 'suspended') { _audioCtx.resume(); }
+      return _audioCtx;
+    }
+
+    function playNotifAlert() {
+      var ctx = getAudioCtx(); if (!ctx) return;
+      [880, 1100].forEach(function(freq, i) {
+        var osc = ctx.createOscillator();
+        var gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        var t = ctx.currentTime + i * 0.13;
+        gain.gain.setValueAtTime(0, t);
+        gain.gain.linearRampToValueAtTime(0.12, t + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.45);
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.start(t); osc.stop(t + 0.5);
+      });
+    }
+
+    var origFetch = window.fetch;
+    window.fetch = function(url, opts) {
+      var result = origFetch.apply(this, arguments);
+      if (typeof url === 'string' && url.indexOf('/app/notifications/panel/') !== -1) {
+        result.then(function(res) { return res.clone().json(); }).then(function(payload) {
+          var count = Number(payload && payload.unread_count || 0);
+          if (count > _lastUnreadCount && _lastUnreadCount >= 0) {
+            playNotifAlert();
+          }
+          _lastUnreadCount = count;
+        }).catch(function() {});
+      }
+      return result;
+    };
+  })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HBC — Sistema de Gestión</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0c0c0f;--s1:#13131a;--s2:#1a1a24;--s3:#22222f;--border:#2c2c3e;--gold:#c8a84b;--gold2:#e4c97a;--text:#e6e4de;--text2:#8a8890;--text3:#5a5868;--red:#b94040;--red2:#e07070;--green:#3a9e6a;--green2:#5ec490;--blue:#3a7ab9;--blue2:#70aae0;--yellow:#b99a3a;--yellow2:#e0c470}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;font-size:14px}
+.sidebar{width:220px;min-height:100vh;background:var(--s1);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:50}
+.logo{padding:20px 18px 16px;border-bottom:1px solid var(--border)}
+.logo h1{font-family:'Cormorant Garamond',serif;font-size:1.15rem;font-weight:500;color:var(--gold);line-height:1.3}
+.logo-sub{font-size:0.63rem;color:var(--text3);margin-top:2px;letter-spacing:0.1em;text-transform:uppercase}
+.logo-clock{font-size:0.78rem;color:var(--text2);margin-top:8px;font-variant-numeric:tabular-nums}
+.logo-date{font-size:0.68rem;color:var(--text3);margin-top:1px}
+.nav{padding:10px 0;flex:1;overflow-y:auto}
+.nav-sec{padding:8px 18px 3px;font-size:0.59rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 18px;cursor:pointer;color:var(--text2);font-size:0.81rem;transition:all 0.15s;border-left:2px solid transparent}
+.nav-item:hover{color:var(--text);background:var(--s2)}
+.nav-item.active{color:var(--gold);border-left-color:var(--gold);background:rgba(200,168,75,0.07)}
+.nav-item svg{width:13px;height:13px;flex-shrink:0;opacity:0.7}
+.nav-item.active svg{opacity:1}
+.main{margin-left:220px;flex:1;min-height:100vh}
+.topbar{padding:12px 26px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--s1);position:sticky;top:0;z-index:10}
+.topbar h2{font-family:'Cormorant Garamond',serif;font-size:1.25rem;font-weight:500}
+.topbar-left{display:flex;align-items:center;gap:12px}
+.topbar-right{display:flex;gap:7px;align-items:center}
+.content{padding:22px 26px}
+.btn{padding:6px 14px;border-radius:4px;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:0.78rem;font-weight:500;transition:all 0.15s;display:inline-flex;align-items:center;gap:5px}
+.btn-gold{background:var(--gold);color:#0c0c0f}.btn-gold:hover{background:var(--gold2)}
+.btn-outline{background:transparent;color:var(--text2);border:1px solid var(--border)}.btn-outline:hover{border-color:var(--gold);color:var(--gold)}
+.btn-ghost{background:transparent;color:var(--text2);border:none;padding:4px 7px}.btn-ghost:hover{color:var(--text)}
+.btn-danger{background:transparent;color:var(--red2);border:1px solid var(--red)}.btn-danger:hover{background:var(--red);color:white}
+.btn-green{background:rgba(58,158,106,0.2);color:var(--green2);border:1px solid var(--green)}.btn-green:hover{background:var(--green);color:white}
+.btn-sm{padding:3px 9px;font-size:0.72rem}
+.page{display:none}.page.active{display:block}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.stat-card{background:var(--s1);border:1px solid var(--border);border-radius:7px;padding:15px 17px}
+.stat-label{font-size:0.65rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:5px}
+.stat-value{font-family:'Cormorant Garamond',serif;font-size:1.8rem;font-weight:500;color:var(--gold)}
+.stat-sub{font-size:0.69rem;color:var(--text2);margin-top:2px}
+.progress-bar{height:3px;background:var(--s3);border-radius:2px;margin-top:5px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--green),var(--green2));border-radius:2px;transition:width 0.3s}
+.search-row{display:flex;gap:7px;margin-bottom:14px;flex-wrap:wrap}
+.si{padding:7px 12px;background:var(--s1);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.81rem;outline:none;transition:border-color 0.15s}
+.si:focus{border-color:var(--gold)}.si::placeholder{color:var(--text3)}
+.tw{background:var(--s1);border:1px solid var(--border);border-radius:7px;overflow:hidden}
+table{width:100%;border-collapse:collapse}
+thead th{padding:9px 13px;text-align:left;font-size:0.63rem;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);border-bottom:1px solid var(--border);background:var(--s2)}
+tbody tr{border-bottom:1px solid rgba(44,44,62,0.5);transition:background 0.1s;cursor:pointer}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:var(--s2)}
+td{padding:9px 13px;font-size:0.81rem}
+.tf{padding:8px 13px;border-top:1px solid var(--border);background:var(--s2);font-size:0.69rem;color:var(--text3);display:flex;justify-content:space-between}
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:0.66rem;font-weight:500;white-space:nowrap}
+.bg{background:rgba(58,158,106,0.15);color:var(--green2)}
+.br{background:rgba(185,64,64,0.15);color:var(--red2)}
+.by{background:rgba(185,154,58,0.15);color:var(--yellow2)}
+.bb{background:rgba(58,122,185,0.15);color:var(--blue2)}
+.bgr{background:rgba(90,88,104,0.25);color:var(--text2)}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.78);z-index:100;align-items:center;justify-content:center;padding:16px}
+.modal-overlay.open{display:flex}
+.modal{background:var(--s1);border:1px solid var(--border);border-radius:10px;width:600px;max-width:100%;max-height:92vh;overflow-y:auto;animation:fu 0.17s ease}
+.modal-xl{width:780px}
+@keyframes fu{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.mh{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--s1);z-index:1}
+.mh h3{font-family:'Cormorant Garamond',serif;font-size:1.1rem;font-weight:500}
+.mc{background:none;border:none;color:var(--text3);cursor:pointer;font-size:1rem;padding:2px 5px}
+.mc:hover{color:var(--text)}
+.mb{padding:20px}
+.mf{padding:12px 20px;border-top:1px solid var(--border);display:flex;gap:7px;justify-content:flex-end}
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fg.full{grid-column:1/-1}.fc{display:flex;flex-direction:column;gap:4px}
+.fl{font-size:0.64rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em}
+input,textarea,select{padding:7px 10px;background:var(--s2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.81rem;outline:none;transition:border-color 0.15s;width:100%}
+input:focus,textarea:focus,select:focus{border-color:var(--gold)}
+textarea{resize:vertical;min-height:65px}
+select option{background:var(--s2)}
+.tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:16px}
+.tab{padding:8px 16px;cursor:pointer;font-size:0.78rem;color:var(--text2);border-bottom:2px solid transparent;transition:all 0.15s}
+.tab.active{color:var(--gold);border-bottom-color:var(--gold)}
+.tc{display:none}.tc.active{display:block}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:14px}
+.ii{background:var(--s2);border-radius:5px;padding:10px 12px}
+.il{font-size:0.63rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em}
+.iv{font-size:0.86rem;margin-top:3px}
+.card{background:var(--s1);border:1px solid var(--border);border-radius:7px;padding:16px}
+.ct{font-family:'Cormorant Garamond',serif;font-size:0.95rem;margin-bottom:12px;padding-bottom:9px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.pend-item{display:flex;align-items:flex-start;gap:9px;padding:9px 11px;background:var(--s2);border-radius:5px;margin-bottom:6px;border-left:3px solid var(--border)}
+.pend-item.urgent{border-left-color:var(--red2)}
+.pend-item.soon{border-left-color:var(--yellow2)}
+.pend-item.ok{border-left-color:var(--green2)}
+.pend-desc{font-size:0.81rem;flex:1}
+.pend-meta{font-size:0.69rem;color:var(--text2);margin-top:2px}
+.venc-item{display:flex;align-items:center;gap:10px;padding:10px 13px;background:var(--s1);border:1px solid var(--border);border-radius:5px;margin-bottom:6px}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.dot.urgent{background:var(--red2)}.dot.soon{background:var(--yellow2)}.dot.ok{background:var(--green2)}
+.cobro-item{display:flex;align-items:center;justify-content:space-between;padding:9px 11px;background:var(--s2);border-radius:5px;margin-bottom:6px}
+.empty{text-align:center;padding:30px;color:var(--text3);font-size:0.8rem}
+.month-nav{display:flex;align-items:center;gap:6px}
+.month-nav span{font-size:0.82rem;min-width:130px;text-align:center;color:var(--text2)}
+.dup-item{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:rgba(185,154,58,0.08);border:1px solid rgba(185,154,58,0.25);border-radius:5px;margin-bottom:7px}
+.form-tag{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;background:var(--s3);border:1px solid var(--border);border-radius:4px;font-size:0.72rem;margin:2px;cursor:pointer;transition:all 0.15s}
+.form-tag:hover{border-color:var(--gold);color:var(--gold)}
+.form-tag.active{background:rgba(200,168,75,0.15);border-color:var(--gold);color:var(--gold2)}
+.ctrl-row{display:flex;align-items:center;padding:8px 13px;border-bottom:1px solid rgba(44,44,62,0.4);gap:10px;transition:background 0.1s}
+.ctrl-row:hover{background:var(--s2)}
+.ctrl-row:last-child{border-bottom:none}
+.ctrl-client{flex:0 0 200px;font-size:0.81rem;cursor:pointer}
+.ctrl-client:hover{color:var(--gold)}
+.ctrl-forms{display:flex;flex-wrap:wrap;gap:4px;flex:1}
+.ctrl-btn{padding:3px 10px;border-radius:3px;border:1px solid var(--border);background:transparent;color:var(--text3);font-size:0.69rem;cursor:pointer;transition:all 0.15s;font-family:'DM Sans',sans-serif}
+.ctrl-btn:hover{border-color:var(--gold);color:var(--gold)}
+.ctrl-btn.done{background:rgba(58,158,106,0.2);border-color:var(--green);color:var(--green2)}
+.ctrl-btn.partial{background:rgba(185,154,58,0.15);border-color:var(--yellow);color:var(--yellow2)}
+.ctrl-status{flex:0 0 90px;text-align:right}
+.divider{height:1px;background:var(--border);margin:14px 0}
+.venc-badge{display:inline-block;padding:1px 7px;border-radius:3px;font-size:0.66rem;background:rgba(200,168,75,0.15);color:var(--gold2);margin-left:6px}
+.alert{padding:9px 13px;border-radius:5px;font-size:0.79rem;display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.alert.warn{background:rgba(185,154,58,0.1);border:1px solid rgba(185,154,58,0.25);color:var(--yellow2)}
+.alert.info{background:rgba(58,122,185,0.1);border:1px solid rgba(58,122,185,0.25);color:var(--blue2)}
+</style>
+</head>
+<body>
+<aside class="sidebar">
+  <div class="logo">
+    <h1>HBC Consultoría</h1>
+    <div class="logo-sub">Sistema Interno</div>
+    <div class="logo-clock" id="reloj">--:--:--</div>
+    <div class="logo-date" id="fecha-hoy"></div>
+  </div>
+  <nav class="nav">
+    <div class="nav-sec">Principal</div>
+    <div class="nav-item active" onclick="nav('dashboard',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Inicio</div>
+    <div class="nav-item" onclick="nav('control',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>Control Mensual</div>
+    <div class="nav-item" onclick="nav('cobros',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>Cobros</div>
+    <div class="nav-sec">Clientes</div>
+    <div class="nav-item" onclick="nav('clientes',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>Clientes</div>
+    <div class="nav-item" onclick="nav('pendencias',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Pendencias</div>
+    <div class="nav-item" onclick="nav('vencimientos',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Vencimientos</div>
+    <div class="nav-item" onclick="nav('duplicados',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>Duplicados</div>
+  </nav>
+</aside>
+<main class="main">
+
+<!-- DASHBOARD -->
+<div id="page-dashboard" class="page active">
+  <div class="topbar"><div class="topbar-left"><h2>Inicio</h2><span id="dash-mes-lbl" style="font-size:0.79rem;color:var(--text2)"></span></div></div>
+  <div class="content">
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-label">Clientes activos</div><div class="stat-value" id="s-total">0</div><div class="stat-sub">en el sistema</div></div>
+      <div class="stat-card"><div class="stat-label">Progreso del mes</div><div class="stat-value" id="s-pct" style="color:var(--green2)">0%</div><div class="progress-bar"><div class="progress-fill" id="s-prog" style="width:0%"></div></div></div>
+      <div class="stat-card"><div class="stat-label">Sin cobrar</div><div class="stat-value" id="s-deuda" style="color:var(--red2)">0</div><div class="stat-sub">clientes con saldo pendiente</div></div>
+      <div class="stat-card"><div class="stat-label">Vencen hoy</div><div class="stat-value" id="s-hoy" style="color:var(--yellow2)">0</div><div class="stat-sub">contribuyentes</div></div>
+    </div>
+    <div class="grid2">
+      <div>
+        <div class="card"><div class="ct">Vencimientos de hoy <span id="dash-hoy-count" class="badge by"></span></div><div id="dash-hoy-lista"></div></div>
+        <div class="card" style="margin-top:14px"><div class="ct">Pendencias urgentes</div><div id="dash-pend-lista"></div></div>
+      </div>
+      <div>
+        <div class="card"><div class="ct">Sin cobrar este mes</div><div id="dash-cobros-lista"></div></div>
+        <div class="card" style="margin-top:14px"><div class="ct">Progreso control mensual</div><div id="dash-ctrl-lista"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CONTROL MENSUAL -->
+<div id="page-control" class="page">
+  <div class="topbar">
+    <div class="topbar-left">
+      <h2>Control Mensual</h2>
+      <div class="month-nav">
+        <button class="btn btn-ghost btn-sm" onclick="cambiarMes(-1)">◀</button>
+        <span id="ctrl-mes-lbl"></span>
+        <button class="btn btn-ghost btn-sm" onclick="cambiarMes(1)">▶</button>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <select class="si" style="width:140px" id="ctrl-zona" onchange="renderControl()"><option value="">Todas las zonas</option><option>Santa Rita</option><option>KM 32</option><option>Misiones</option></select>
+      <input class="si" style="width:170px" id="ctrl-buscar" placeholder="Buscar cliente..." oninput="renderControl()">
+      <select class="si" style="width:130px" id="ctrl-estado" onchange="renderControl()"><option value="">Todos</option><option value="pendiente">Pendientes</option><option value="completo">Completos</option></select>
+    </div>
+  </div>
+  <div class="content">
+    <div id="ctrl-stats" style="display:flex;gap:10px;margin-bottom:14px"></div>
+    <div class="tw"><div id="ctrl-lista"></div></div>
+  </div>
+</div>
+
+<!-- COBROS -->
+<div id="page-cobros" class="page">
+  <div class="topbar">
+    <div class="topbar-left">
+      <h2>Cobros</h2>
+      <div class="month-nav">
+        <button class="btn btn-ghost btn-sm" onclick="cambiarMes(-1)">◀</button>
+        <span id="cobros-mes-lbl"></span>
+        <button class="btn btn-ghost btn-sm" onclick="cambiarMes(1)">▶</button>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <select class="si" style="width:130px" id="cobros-filtro" onchange="renderCobros()"><option value="">Todos</option><option value="pendiente">Sin pagar</option><option value="pagado">Pagados</option></select>
+      <input class="si" style="width:170px" id="cobros-buscar" placeholder="Buscar..." oninput="renderCobros()">
+    </div>
+  </div>
+  <div class="content">
+    <div class="grid3" style="margin-bottom:16px">
+      <div class="stat-card"><div class="stat-label">Total a cobrar GS</div><div class="stat-value" id="c-tgs" style="font-size:1.2rem">₲ 0</div></div>
+      <div class="stat-card"><div class="stat-label">Cobrado</div><div class="stat-value" id="c-cob" style="font-size:1.2rem;color:var(--green2)">₲ 0</div></div>
+      <div class="stat-card"><div class="stat-label">Pendiente</div><div class="stat-value" id="c-pen" style="font-size:1.2rem;color:var(--red2)">₲ 0</div></div>
+    </div>
+    <div class="tw">
+      <table><thead><tr><th>Cliente</th><th>RUC</th><th>Obligación</th><th>Valor GS</th><th>Valor USD</th><th>Estado</th><th>Acción</th></tr></thead>
+      <tbody id="cobros-tabla"></tbody></table>
+      <div class="tf"><span id="cobros-cnt"></span></div>
+    </div>
+  </div>
+</div>
+
+<!-- CLIENTES -->
+<div id="page-clientes" class="page">
+  <div class="topbar">
+    <div class="topbar-left"><h2>Clientes</h2></div>
+    <div class="topbar-right">
+      <button class="btn btn-outline btn-sm" onclick="nav('duplicados',document.querySelector('.nav-item:nth-child(8)'))">🔍 Ver duplicados</button>
+      <button class="btn btn-gold" onclick="abrirNuevoCliente()">+ Nuevo</button>
+    </div>
+  </div>
+  <div class="content">
+    <div class="search-row">
+      <input class="si" style="flex:1;min-width:180px" id="cli-buscar" placeholder="Buscar por nombre, RUC..." oninput="renderClientes()">
+      <select class="si" style="width:140px" id="cli-zona" onchange="renderClientes()"><option value="">Todas las zonas</option><option>Santa Rita</option><option>KM 32</option><option>Misiones</option><option>Suspendido</option></select>
+      <select class="si" style="width:160px" id="cli-estado" onchange="renderClientes()"><option value="">Todos los estados</option><option>Activo</option><option>Inactivo</option><option>Suspendido</option></select>
+    </div>
+    <div class="tw">
+      <table><thead><tr><th>Cliente</th><th>RUC</th><th>Zona</th><th>Obligación</th><th>Vence día</th><th>Valor GS</th><th>Valor USD</th><th>Estado</th></tr></thead>
+      <tbody id="clientes-tabla"></tbody></table>
+      <div class="tf"><span id="cli-cnt"></span><span id="cli-dup-warn" style="color:var(--yellow2)"></span></div>
+    </div>
+  </div>
+</div>
+
+<!-- PENDENCIAS -->
+<div id="page-pendencias" class="page">
+  <div class="topbar">
+    <div class="topbar-left"><h2>Pendencias</h2></div>
+    <div class="topbar-right"><button class="btn btn-gold" onclick="abrirNuevaPend()">+ Nueva</button></div>
+  </div>
+  <div class="content">
+    <div class="search-row">
+      <input class="si" style="flex:1" id="pend-buscar" placeholder="Buscar..." oninput="renderPendencias()">
+      <select class="si" style="width:130px" id="pend-prior" onchange="renderPendencias()"><option value="">Todas</option><option value="urgent">Urgente</option><option value="soon">Próximo</option><option value="ok">Normal</option></select>
+      <select class="si" style="width:130px" id="pend-est" onchange="renderPendencias()"><option value="activa">Activas</option><option value="">Todas</option><option value="resuelta">Resueltas</option></select>
+    </div>
+    <div id="pend-lista"></div>
+  </div>
+</div>
+
+<!-- VENCIMIENTOS -->
+<div id="page-vencimientos" class="page">
+  <div class="topbar">
+    <div class="topbar-left"><h2>Vencimientos DNIT</h2></div>
+    <div class="topbar-right"><button class="btn btn-gold" onclick="abrirNuevoVenc()">+ Agregar</button></div>
+  </div>
+  <div class="content">
+    <div class="alert info">ℹ️ Los vencimientos automáticos se calculan según el Calendario Perpetuo DNIT (RG 38/2020). El día de vencimiento se determina por el último dígito del RUC, del día 7 al 25 de cada mes.</div>
+    <div class="tabs">
+      <div class="tab active" onclick="showVencTab('auto',this)">Automáticos por RUC</div>
+      <div class="tab" onclick="showVencTab('manual',this)">Manuales</div>
+    </div>
+    <div id="vt-auto" class="tc active">
+      <div class="search-row">
+        <div class="month-nav">
+          <button class="btn btn-ghost btn-sm" onclick="cambiarMes(-1)">◀</button>
+          <span id="venc-mes-lbl"></span>
+          <button class="btn btn-ghost btn-sm" onclick="cambiarMes(1)">▶</button>
+        </div>
+        <input class="si" style="flex:1" id="venc-buscar" placeholder="Buscar cliente..." oninput="renderVencAuto()">
+        <select class="si" style="width:130px" id="venc-zona" onchange="renderVencAuto()"><option value="">Todas las zonas</option><option>Santa Rita</option><option>KM 32</option><option>Misiones</option></select>
+      </div>
+      <div class="tw"><table><thead><tr><th>Cliente</th><th>RUC</th><th>Último dígito</th><th>Día vence</th><th>Fecha exacta</th><th>Días restantes</th><th>Obligación</th></tr></thead>
+      <tbody id="venc-auto-tabla"></tbody></table></div>
+    </div>
+    <div id="vt-manual" class="tc">
+      <div id="venc-manual-lista"></div>
+    </div>
+  </div>
+</div>
+
+<!-- DUPLICADOS -->
+<div id="page-duplicados" class="page">
+  <div class="topbar"><div class="topbar-left"><h2>Buscar Duplicados</h2></div></div>
+  <div class="content">
+    <div id="dup-resultado"></div>
+  </div>
+</div>
+
+</main>
+
+<!-- MODAL DETALLE CLIENTE -->
+<div class="modal-overlay" id="m-det">
+  <div class="modal modal-xl">
+    <div class="mh"><h3 id="det-nombre"></h3><button class="mc" onclick="cerrar('m-det')">✕</button></div>
+    <div class="mb">
+      <div class="tabs">
+        <div class="tab active" onclick="showTab('det-info',this,'m-det')">Info</div>
+        <div class="tab" onclick="showTab('det-forms',this,'m-det')">Formularios</div>
+        <div class="tab" onclick="showTab('det-cobros',this,'m-det')">Cobros</div>
+        <div class="tab" onclick="showTab('det-pends',this,'m-det')">Pendencias</div>
+      </div>
+      <div id="det-info" class="tc active"><div class="info-grid" id="det-ig"></div><div style="display:flex;gap:7px;margin-top:4px"><button class="btn btn-outline btn-sm" onclick="editarCliente()">Editar</button><button class="btn btn-gold btn-sm" onclick="abrirNuevaPendCliente()">+ Pendencia</button><button class="btn btn-outline btn-sm" onclick="abrirNuevoVencCliente()">+ Vencimiento</button></div></div>
+      <div id="det-forms" class="tc"><div id="det-forms-body"></div></div>
+      <div id="det-cobros" class="tc"><div id="det-cobros-body"></div></div>
+      <div id="det-pends" class="tc"><div id="det-pends-body"></div></div>
+    </div>
+    <div class="mf"><button class="btn btn-danger btn-sm" onclick="eliminarCliente()">Eliminar cliente</button><button class="btn btn-gold" onclick="cerrar('m-det')">Cerrar</button></div>
+  </div>
+</div>
+
+<!-- MODAL NUEVO/EDITAR CLIENTE -->
+<div class="modal-overlay" id="m-cli">
+  <div class="modal">
+    <div class="mh"><h3 id="m-cli-tit">Nuevo Cliente</h3><button class="mc" onclick="cerrar('m-cli')">✕</button></div>
+    <div class="mb">
+      <div class="fg">
+        <div class="fc fg-full"><div class="fl">Nombre / Razón Social</div><input id="nc-nom" type="text" placeholder="Nombre completo"></div>
+        <div class="fc"><div class="fl">RUC (sin dígito verificador)</div><input id="nc-ruc" type="text" placeholder="Ej: 80146792"></div>
+        <div class="fc"><div class="fl">Zona</div><select id="nc-zona"><option>Santa Rita</option><option>KM 32</option><option>Misiones</option></select></div>
+        <div class="fc fg-full"><div class="fl">Obligación tributaria</div><input id="nc-oblig" type="text" placeholder="Ej: IRE GENERAL, IVA, IRP..."></div>
+        <div class="fc"><div class="fl">Valor mensual (GS)</div><input id="nc-gs" type="number" placeholder="0"></div>
+        <div class="fc"><div class="fl">Valor mensual (USD)</div><input id="nc-usd" type="number" placeholder="0"></div>
+        <div class="fc"><div class="fl">Valor anual (GS)</div><input id="nc-ags" type="number" placeholder="0"></div>
+        <div class="fc"><div class="fl">Valor anual (USD)</div><input id="nc-ausd" type="number" placeholder="0"></div>
+        <div class="fc"><div class="fl">Teléfono</div><input id="nc-tel" type="text" placeholder="0981 000 000"></div>
+        <div class="fc"><div class="fl">Estado</div><select id="nc-est"><option>Activo</option><option>Inactivo</option><option>Suspendido</option></select></div>
+        <div class="fc fg-full"><div class="fl">Formularios que lleva</div>
+          <div style="margin-top:4px" id="form-tags-container">
+            <span class="form-tag" data-f="F.120 IVA" onclick="toggleFormTag(this)">F.120 IVA</span>
+            <span class="form-tag" data-f="F.101 Renta" onclick="toggleFormTag(this)">F.101 Renta</span>
+            <span class="form-tag" data-f="F.105 IRAGRO" onclick="toggleFormTag(this)">F.105 IRAGRO</span>
+            <span class="form-tag" data-f="F.121 IVA Import." onclick="toggleFormTag(this)">F.121 IVA Import.</span>
+            <span class="form-tag" data-f="IRP Mensual" onclick="toggleFormTag(this)">IRP Mensual</span>
+            <span class="form-tag" data-f="IRE Trimestral" onclick="toggleFormTag(this)">IRE Trimestral</span>
+          </div>
+          <div style="display:flex;gap:6px;margin-top:6px">
+            <input id="nc-form-extra" type="text" placeholder="Otro formulario..." style="flex:1">
+            <button class="btn btn-outline btn-sm" onclick="addFormExtra()">Agregar</button>
+          </div>
+        </div>
+        <div class="fc fg-full"><div class="fl">Dirección</div><input id="nc-dir" type="text" placeholder="Dirección"></div>
+        <div class="fc fg-full"><div class="fl">Notas</div><textarea id="nc-notas" placeholder="Observaciones..."></textarea></div>
+      </div>
+    </div>
+    <div class="mf"><button class="btn btn-outline" onclick="cerrar('m-cli')">Cancelar</button><button class="btn btn-gold" onclick="guardarCliente()">Guardar</button></div>
+  </div>
+</div>
+
+<!-- MODAL PENDENCIA -->
+<div class="modal-overlay" id="m-pend">
+  <div class="modal">
+    <div class="mh"><h3>Nueva Pendencia</h3><button class="mc" onclick="cerrar('m-pend')">✕</button></div>
+    <div class="mb">
+      <div class="fg">
+        <div class="fc fg-full"><div class="fl">Cliente</div><select id="p-cli"></select></div>
+        <div class="fc fg-full"><div class="fl">Descripción</div><input id="p-desc" type="text" placeholder="Ej: Falta traer habilitación municipal"></div>
+        <div class="fc"><div class="fl">Fecha estimada</div><input id="p-fecha" type="date"></div>
+        <div class="fc"><div class="fl">Prioridad</div><select id="p-prior"><option value="ok">Normal</option><option value="soon">Próximo</option><option value="urgent">Urgente</option></select></div>
+      </div>
+    </div>
+    <div class="mf"><button class="btn btn-outline" onclick="cerrar('m-pend')">Cancelar</button><button class="btn btn-gold" onclick="guardarPend()">Guardar</button></div>
+  </div>
+</div>
+
+<!-- MODAL VENCIMIENTO MANUAL -->
+<div class="modal-overlay" id="m-venc">
+  <div class="modal">
+    <div class="mh"><h3>Nuevo Vencimiento</h3><button class="mc" onclick="cerrar('m-venc')">✕</button></div>
+    <div class="mb">
+      <div class="fg">
+        <div class="fc fg-full"><div class="fl">Cliente</div><select id="v-cli"></select></div>
+        <div class="fc fg-full"><div class="fl">Descripción</div><input id="v-desc" type="text" placeholder="Ej: Presentar balance anual"></div>
+        <div class="fc"><div class="fl">Fecha</div><input id="v-fecha" type="date"></div>
+        <div class="fc"><div class="fl">Prioridad</div><select id="v-prior"><option value="ok">Normal</option><option value="soon">Próximo</option><option value="urgent">Urgente</option></select></div>
+      </div>
+    </div>
+    <div class="mf"><button class="btn btn-outline" onclick="cerrar('m-venc')">Cancelar</button><button class="btn btn-gold" onclick="guardarVenc()">Guardar</button></div>
+  </div>
+</div>
+
+<style>.fg-full{grid-column:1/-1}</style>
+<script>
+// ===== CALENDARIO PERPETUO DNIT =====
+const DNIT_VENC = {0:7,1:9,2:11,3:13,4:15,5:17,6:19,7:21,8:23,9:25};
+
+function diaVencimiento(ruc) {
+  if (!ruc) return null;
+  const limpio = String(ruc).replace(/[^0-9]/g,'');
+  if (!limpio) return null;
+  // Sacar dígito verificador (último después de guión, o simplemente el último dígito)
+  // El RUC paraguayo: NNNNNN-D donde D es el verificador
+  // Si tiene guión, tomamos lo que está antes del guión
+  let base = limpio;
+  if (String(ruc).includes('-')) {
+    base = String(ruc).split('-')[0].replace(/[^0-9]/g,'');
+  }
+  const ult = parseInt(base[base.length - 1]);
+  return DNIT_VENC[ult] || null;
+}
+
+function fechaVencMes(ruc, anio, mes) {
+  const dia = diaVencimiento(ruc);
+  if (!dia) return null;
+  // mes es 0-based
+  const f = new Date(anio, mes, dia);
+  // Si cae sábado (6) o domingo (0), mover al lunes
+  while (f.getDay() === 0 || f.getDay() === 6) f.setDate(f.getDate()+1);
+  return f;
+}
+
+// ===== DATA =====
+const CLIENTES_INIT = [{"id": 1, "nombre": "ACREL PARAGUAY SRL", "ruc": "80146792", "zona": "Santa Rita", "valor_gs": 550000.0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 2, "nombre": "Adelmo Sadi", "ruc": "1638926", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 3, "nombre": "ADEMIR RICKLI", "ruc": "2518231", "zona": "Santa Rita", "valor_gs": 275000.0, "valor_usd": 0, "obligacion": "IRE SIMPLE Y IRP CAPITAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 4, "nombre": "Admir Jose Valcenghi", "ruc": "3489390", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE GENERAL - IRP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 5, "nombre": "ADOLFO AGUIRRE", "ruc": "1778790", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE SIMPLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 6, "nombre": "ADRIANO SERVIAN ESCOBAR SUAREZ", "ruc": "4853460", "zona": "Santa Rita", "valor_gs": 180000.0, "valor_usd": 0, "obligacion": "IVA / IRP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 7, "nombre": "AGRO ATENAS S.A", "ruc": "80044916", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE CONTABLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 8, "nombre": "Agro Santa fe", "ruc": "80066840", "zona": "Santa Rita", "valor_gs": 1700000.0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 9, "nombre": "AGUSTIN BRUSQUETI CHAMARRO", "ruc": "1087914", "zona": "Santa Rita", "valor_gs": 320000.0, "valor_usd": 0, "obligacion": "IRE SIMPLE - MISIONES", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 10, "nombre": "AILSON JOSE STUEPP", "ruc": "3594514", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRP CAPITAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 11, "nombre": "Alcione Da Silva", "ruc": "6263995", "zona": "Santa Rita", "valor_gs": 220000.0, "valor_usd": 0, "obligacion": "IRP-RSP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 12, "nombre": "ALDA HIGINIO DORMELES", "ruc": "4342206", "zona": "Santa Rita", "valor_gs": 330000.0, "valor_usd": 0, "obligacion": "IRE SIMPLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 13, "nombre": "ALDAIR JOSE REGINATO JUNIOR", "ruc": "3826965", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 14, "nombre": "Aldo Duarte", "ruc": "2580083", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRP-SRP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 15, "nombre": "Aldo Ruben Correa", "ruc": "3658908", "zona": "Santa Rita", "valor_gs": 550000.0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 16, "nombre": "Alex Diogo Dalazen", "ruc": "6018343", "zona": "Santa Rita", "valor_gs": 220000.0, "valor_usd": 0, "obligacion": "IRP-SRP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 17, "nombre": "Alex Junior Flores", "ruc": "7292431", "zona": "Santa Rita", "valor_gs": 220000.0, "valor_usd": 0, "obligacion": "IRE-IRP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 18, "nombre": "Alicia Martinez", "ruc": "3669221", "zona": "Santa Rita", "valor_gs": 220000.0, "valor_usd": 0, "obligacion": "IRE SIMPLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 19, "nombre": "Aline Andreia Hendges", "ruc": "6338066", "zona": "Santa Rita", "valor_gs": 165000.0, "valor_usd": 0, "obligacion": "IRE SIMPLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 20, "nombre": "Alvorada Import, Export S.A", "ruc": "80069310", "zona": "Santa Rita", "valor_gs": 2500000.0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 21, "nombre": "ANA PAULA LOTTERMANN", "ruc": "7459218", "zona": "Santa Rita", "valor_gs": 165000.0, "valor_usd": 0, "obligacion": "IVA", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 22, "nombre": "ANARQUIA MOTORCYCLE EAS", "ruc": "80148775", "zona": "Santa Rita", "valor_gs": 275000.0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 23, "nombre": "ANDERSON ELIAS PHIPPSEN", "ruc": "5511601", "zona": "Santa Rita", "valor_gs": 350000.0, "valor_usd": 0, "obligacion": "IRE GENERAL - IRP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 24, "nombre": "Andre Valcarebghi Siqueira", "ruc": "6516902", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 330.0, "obligacion": "IRE GENERAL - IRP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 25, "nombre": "ANDRES SCOPEL", "ruc": "5745750", "zona": "Santa Rita", "valor_gs": 330000.0, "valor_usd": 0, "obligacion": "IRES SIMPLE Y IRP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 26, "nombre": "ANESIO EMERSON DE OLIVEIRA", "ruc": "4780756", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRP CAPITAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 27, "nombre": "ANTONIO MARCOS DE SA", "ruc": "4910544", "zona": "Santa Rita", "valor_gs": 110000.0, "valor_usd": 0, "obligacion": "IVA /IRP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 28, "nombre": "ARLINDO KOCHMAM", "ruc": "1625863", "zona": "Santa Rita", "valor_gs": 380000.0, "valor_usd": 0, "obligacion": "CONTABLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 29, "nombre": "Armando Leichtweis", "ruc": "2486572", "zona": "Santa Rita", "valor_gs": 220000.0, "valor_usd": 0, "obligacion": "IRP Y IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 30, "nombre": "Arnaldo Gomez", "ruc": "3954904", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 31, "nombre": "ARNO MARQUEZ DIEL", "ruc": "5160990", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE SIMPLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 32, "nombre": "ASIRIA MARIA BEUREN SCHORR", "ruc": "2520038", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE SIMPLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 33, "nombre": "BENTZA SA", "ruc": "80149083", "zona": "Santa Rita", "valor_gs": 550000.0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 34, "nombre": "BIOCROP AGRO EAS", "ruc": "80137461", "zona": "Santa Rita", "valor_gs": 275000.0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 35, "nombre": "BRAULIO FLORENTIN AYALA", "ruc": "1296559", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 36, "nombre": "CAETANO FARINA BASTOS", "ruc": "9277527", "zona": "Santa Rita", "valor_gs": 220000.0, "valor_usd": 0, "obligacion": "IVA /IRP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 37, "nombre": "CARLITO CHINI", "ruc": "1615163", "zona": "Santa Rita", "valor_gs": 300000.0, "valor_usd": 0, "obligacion": "CONTABLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 38, "nombre": "CARLOS EPIFANIO DUARTE", "ruc": "2414974", "zona": "Santa Rita", "valor_gs": 165000.0, "valor_usd": 0, "obligacion": "IVA/ IRP-RSP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 39, "nombre": "Carlos Maciel", "ruc": "7524564", "zona": "Santa Rita", "valor_gs": 330000.0, "valor_usd": 0, "obligacion": "IRP-RGC", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 40, "nombre": "Cesar Rodriguez", "ruc": "389540", "zona": "Santa Rita", "valor_gs": 440000.0, "valor_usd": 0, "obligacion": "IRP RSP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 41, "nombre": "Cesar Torres", "ruc": "3726512", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRP ANUAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 42, "nombre": "CHARLES GRAFF", "ruc": "5938902", "zona": "Santa Rita", "valor_gs": 220000.0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 43, "nombre": "CRISTIAN ESPINOLA", "ruc": "", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IVA/IRE S", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 44, "nombre": "Cristino Raul Britos", "ruc": "4241305", "zona": "Santa Rita", "valor_gs": 165000.0, "valor_usd": 0, "obligacion": "IRE SIMPLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 45, "nombre": "DAISE ROSANA VASATA", "ruc": "6749185", "zona": "Santa Rita", "valor_gs": 250000.0, "valor_usd": 0, "obligacion": "", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 46, "nombre": "Dalazen S.A.", "ruc": "80025151", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 440.0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 47, "nombre": "DANIEL DA ROCHA", "ruc": "5835318", "zona": "Santa Rita", "valor_gs": 130000.0, "valor_usd": 0, "obligacion": "IRE SIMPLE -AP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 48, "nombre": "DANIELA ZANINI PECHER", "ruc": "", "zona": "Santa Rita", "valor_gs": 110000.0, "valor_usd": 0, "obligacion": "IVA /IRP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 49, "nombre": "Debora Reichel", "ruc": "7704200", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE SIMPLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 50, "nombre": "Desarrollo  Plasticos SA", "ruc": "80075700", "zona": "Santa Rita", "valor_gs": 5000000.0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 51, "nombre": "Diego Matias Morel", "ruc": "3898269", "zona": "Santa Rita", "valor_gs": 225000.0, "valor_usd": 0, "obligacion": "IRE SIMPLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 52, "nombre": "Digiprint", "ruc": "80058260", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 53, "nombre": "Dimasa SA", "ruc": "80028389", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 1700.0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 54, "nombre": "DIRCE MARIA KUHN DE PICOLOTTO", "ruc": "6054681", "zona": "Santa Rita", "valor_gs": 330000.0, "valor_usd": 0, "obligacion": "IVA / IRE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 55, "nombre": "Don Leopoldo Inm S.A", "ruc": "80106113", "zona": "Santa Rita", "valor_gs": 3300000.0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 56, "nombre": "DOUGLAS MACHADO VIEIRA", "ruc": "7585227", "zona": "Santa Rita", "valor_gs": 165000.0, "valor_usd": 0, "obligacion": "IVA", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 57, "nombre": "EDEMAR ADOLFO PREIS", "ruc": "6914784", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE SIMPLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 58, "nombre": "EDER NIERKOWSKI", "ruc": "5015649", "zona": "Santa Rita", "valor_gs": 165000.0, "valor_usd": 0, "obligacion": "IRE SIMPLE- IRP CAPITAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 59, "nombre": "EDERSON VANIN SCHNEIDER", "ruc": "", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE RESIMPLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 60, "nombre": "EDILSON ZIMMERMANN RIVEIRO", "ruc": "5718530", "zona": "Santa Rita", "valor_gs": 220000.0, "valor_usd": 0, "obligacion": "IVA / IRE / IRP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 61, "nombre": "Edson Da Silva Stuepp", "ruc": "4924366", "zona": "Santa Rita", "valor_gs": 330000.0, "valor_usd": 0, "obligacion": "IRP-RSP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 62, "nombre": "EDSON LUIZ KUHN", "ruc": "5546432", "zona": "Santa Rita", "valor_gs": 2500000.0, "valor_usd": 0, "obligacion": "IRE GENERAL Y IRP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 63, "nombre": "EDSON RODRIGUES MOREIRA", "ruc": "4233975", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 64, "nombre": "EDUCACION BEBETO S. A.", "ruc": "80081615", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IVA / IRE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 65, "nombre": "Egidio Donzelli", "ruc": "2360668", "zona": "Santa Rita", "valor_gs": 275000.0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 66, "nombre": "ELASTICOS SAN JOSE SA", "ruc": "80129517", "zona": "Santa Rita", "valor_gs": 550000.0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 67, "nombre": "Eleandro Ellonai Kelm", "ruc": "3761427", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRP RSP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 68, "nombre": "Elisa Arami Alderete", "ruc": "4074307", "zona": "Santa Rita", "valor_gs": 220000.0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 69, "nombre": "ELUANA . KUNKEL RIEGER", "ruc": "6954850", "zona": "Santa Rita", "valor_gs": 300000.0, "valor_usd": 0, "obligacion": "IVA/IRP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 70, "nombre": "Emerson Coelho", "ruc": "7117419", "zona": "Santa Rita", "valor_gs": 230000.0, "valor_usd": 0, "obligacion": "IRE SIMPLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 71, "nombre": "EMERSON LUIS JUNIOR PILGER", "ruc": "", "zona": "Santa Rita", "valor_gs": 330000.0, "valor_usd": 0, "obligacion": "IVA /IRP-RSP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 72, "nombre": "EMILIO RAUL GOMEZ (CHAPISTA)", "ruc": "6214001", "zona": "Santa Rita", "valor_gs": 165000.0, "valor_usd": 0, "obligacion": "IVA / IRE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 73, "nombre": "Empremdimiento Maria Cecilia SA", "ruc": "80070701", "zona": "Santa Rita", "valor_gs": 770000.0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 74, "nombre": "ERICA FLEITAS", "ruc": "687215", "zona": "Santa Rita", "valor_gs": 275000.0, "valor_usd": 0, "obligacion": "IRP Y IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 75, "nombre": "ESTANCIA 3 FRONTERAS SA", "ruc": "80136279", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 330.0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 76, "nombre": "EULALIO BENITEZ DELGADO", "ruc": "4719587", "zona": "Santa Rita", "valor_gs": 330000.0, "valor_usd": 0, "obligacion": "IVA / IRE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 77, "nombre": "Eusebio Da Rocha", "ruc": "5269093", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 78, "nombre": "Evanor Moises flesch", "ruc": "4421061", "zona": "Santa Rita", "valor_gs": 220000.0, "valor_usd": 0, "obligacion": "IRP RSP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 79, "nombre": "Ezequiel Zocche Panatto", "ruc": "4280543", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "Contable", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 80, "nombre": "Fabiano Immig Roque", "ruc": "7758156", "zona": "Santa Rita", "valor_gs": 220000.0, "valor_usd": 0, "obligacion": "IRP-RSP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 81, "nombre": "Feliciano Javier Matinez", "ruc": "866455", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 82, "nombre": "FERNANDA REGINATO RODRIGUES", "ruc": "5951456", "zona": "Santa Rita", "valor_gs": 220000.0, "valor_usd": 0, "obligacion": "IVA / IRP / IRE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 83, "nombre": "Fernando Roque Immig", "ruc": "7372718", "zona": "Santa Rita", "valor_gs": 220000.0, "valor_usd": 0, "obligacion": "IRP RSP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 84, "nombre": "Flora Lombardo", "ruc": "4193666", "zona": "Santa Rita", "valor_gs": 110000.0, "valor_usd": 0, "obligacion": "IRE SIMPLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 85, "nombre": "Francisco Urtado", "ruc": "4479811", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRP RSP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 86, "nombre": "FRATRES S.A", "ruc": "80104647", "zona": "Santa Rita", "valor_gs": 2200000.0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 87, "nombre": "G3 Transportes S.A", "ruc": "80045470", "zona": "Santa Rita", "valor_gs": 7700000.0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 88, "nombre": "G4 CAL SA", "ruc": "80121034", "zona": "Santa Rita", "valor_gs": 2000000.0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 89, "nombre": "Gabriel de la Cruz", "ruc": "5564512", "zona": "Santa Rita", "valor_gs": 165000.0, "valor_usd": 0, "obligacion": "IRE SIMPLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 90, "nombre": "GABRIELA FRANCOIS MATTE", "ruc": "5475677", "zona": "Santa Rita", "valor_gs": 330000.0, "valor_usd": 0, "obligacion": "IRE SIMPLE EXPERT", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 91, "nombre": "GABRIELI HOFFMANN", "ruc": "4539263", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE SIMPLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 92, "nombre": "GENFUT SA", "ruc": "80112550", "zona": "Santa Rita", "valor_gs": 480000.0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 93, "nombre": "GILBERTO JOSE SCOPEL", "ruc": "5762047", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE SIMPLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 94, "nombre": "GIOVANE NESTOR RAMBO", "ruc": "4991905", "zona": "Santa Rita", "valor_gs": 180000.0, "valor_usd": 0, "obligacion": "IRE SIMPLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 95, "nombre": "GRUPO A.V SRL", "ruc": "80105713", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 350.0, "obligacion": "CONTABLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 96, "nombre": "GRUPO STUEPP S.R.L", "ruc": "8013480", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "CONTABLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 97, "nombre": "HEBER AUGUSTO CORONEL RUIZ DIA", "ruc": "3654320", "zona": "Santa Rita", "valor_gs": 110000.0, "valor_usd": 0, "obligacion": "IVA / IRP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 98, "nombre": "Helena Rozani Pilate Rickli", "ruc": "6927606", "zona": "Santa Rita", "valor_gs": 330000.0, "valor_usd": 0, "obligacion": "IRE SIMPLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 99, "nombre": "HERIBERTO MELGAREJO", "ruc": "2292717", "zona": "Santa Rita", "valor_gs": 350000.0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 100, "nombre": "Ignacio Schorr", "ruc": "1611511", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE GENERAL-IRP SER Y CP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 101, "nombre": "II DM S.A", "ruc": "80087764", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 440.0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 102, "nombre": "IRACI BAMPI", "ruc": "5492394", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRP / IRE SIMPLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 103, "nombre": "IRACI PAGNOCELLI", "ruc": "3880373", "zona": "Santa Rita", "valor_gs": 330000.0, "valor_usd": 0, "obligacion": "CONTABLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 104, "nombre": "IRENE GARCIA DE SA", "ruc": "3012161", "zona": "Santa Rita", "valor_gs": 165000.0, "valor_usd": 0, "obligacion": "IRE SIMPLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 105, "nombre": "IRRIGAR SA", "ruc": "80109064", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 500.0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 106, "nombre": "IVAN SELEME", "ruc": "7161983", "zona": "Santa Rita", "valor_gs": 275000.0, "valor_usd": 0, "obligacion": "IRE SIMLES", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 107, "nombre": "Ivo Michels", "ruc": "1519402", "zona": "Santa Rita", "valor_gs": 165000.0, "valor_usd": 0, "obligacion": "IRE SIMPLES", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 108, "nombre": "Jair Costa Carlos", "ruc": "4927334", "zona": "Santa Rita", "valor_gs": 2500000.0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 109, "nombre": "Jandira Machado", "ruc": "6054773", "zona": "Santa Rita", "valor_gs": 165000.0, "valor_usd": 0, "obligacion": "IRE SIMLES", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 110, "nombre": "JANIR KIELING", "ruc": "4411445", "zona": "Santa Rita", "valor_gs": 440000.0, "valor_usd": 0, "obligacion": "IRP CAPITAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 111, "nombre": "JARLES ADRIANO BIONDO", "ruc": "3949411", "zona": "Santa Rita", "valor_gs": 275000.0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 112, "nombre": "JEFFESRON BASTOS", "ruc": "4991875", "zona": "Santa Rita", "valor_gs": 220000.0, "valor_usd": 0, "obligacion": "", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 113, "nombre": "Jheison Alex Johann", "ruc": "4275052", "zona": "Santa Rita", "valor_gs": 220000.0, "valor_usd": 0, "obligacion": "IRP RSP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 114, "nombre": "JHONNES ZANINI", "ruc": "5761599", "zona": "Santa Rita", "valor_gs": 275000.0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 115, "nombre": "JK Misiones SRl", "ruc": "80057770", "zona": "Santa Rita", "valor_gs": 3300000.0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 116, "nombre": "JOAO FERREIRA DA SILVA", "ruc": "6882964", "zona": "Santa Rita", "valor_gs": 220000.0, "valor_usd": 0, "obligacion": "IVA / IRE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 117, "nombre": "Jocimar Franco Ribeiro", "ruc": "5761921", "zona": "Santa Rita", "valor_gs": 220000.0, "valor_usd": 0, "obligacion": "IRP RSP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 118, "nombre": "Jonatan Augusto Johann", "ruc": "4059024", "zona": "Santa Rita", "valor_gs": 275000.0, "valor_usd": 0, "obligacion": "IRP- IRE SIMPLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 119, "nombre": "JONATAN CHAVEZ DA SILVA", "ruc": "6341694", "zona": "Santa Rita", "valor_gs": 165000.0, "valor_usd": 0, "obligacion": "IRP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 120, "nombre": "JONATHAN DANIEL CORREIA DIANA", "ruc": "3966519", "zona": "Santa Rita", "valor_gs": 110000.0, "valor_usd": 0, "obligacion": "IRP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 121, "nombre": "Jose Alexandro Hoffmann", "ruc": "5991507", "zona": "Santa Rita", "valor_gs": 550000.0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 122, "nombre": "JOSE AUGUSTO MISKE", "ruc": "9121892", "zona": "Santa Rita", "valor_gs": 275000.0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 123, "nombre": "Jose Fernando Pardo", "ruc": "2038059", "zona": "Santa Rita", "valor_gs": 220000.0, "valor_usd": 0, "obligacion": "IRP IRE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 124, "nombre": "Jose German Rojas", "ruc": "1471910", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE SIMPLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 125, "nombre": "JOSE HUPPES", "ruc": "", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IVA/ IRE S", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 126, "nombre": "Jose Vanio Vefago", "ruc": "3870972", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE GENERAL -IRP SERV Y CAP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 127, "nombre": "JOSE ZOCCE", "ruc": "2442237", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE SIMPLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 128, "nombre": "Josinei Bottega", "ruc": "7607750", "zona": "Santa Rita", "valor_gs": 165000.0, "valor_usd": 0, "obligacion": "IRP RSP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 129, "nombre": "Juan Bautista Arana", "ruc": "8641257", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRP RSP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 130, "nombre": "JUAN JOSE ACOSTA RAMON", "ruc": "4597786", "zona": "Santa Rita", "valor_gs": 165000.0, "valor_usd": 0, "obligacion": "", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 131, "nombre": "Jucelene Kottvitz", "ruc": "3974538", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE SIMPLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 132, "nombre": "Jucimara Duraes De Souza", "ruc": "7524569", "zona": "Santa Rita", "valor_gs": 550000.0, "valor_usd": 0, "obligacion": "IRP IRE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 133, "nombre": "JULSIMAR SEGALIN", "ruc": "5610083", "zona": "Santa Rita", "valor_gs": 165000.0, "valor_usd": 0, "obligacion": "", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 134, "nombre": "Junior Monteiro", "ruc": "6235892", "zona": "Santa Rita", "valor_gs": 35000.0, "valor_usd": 0, "obligacion": "IRP- IRE SIMPLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 135, "nombre": "JUNIOR ORLANDO DURAES BAHLS", "ruc": "8302527", "zona": "Santa Rita", "valor_gs": 550000.0, "valor_usd": 0, "obligacion": "", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 136, "nombre": "Junta de Saneamiento Campiña Verde", "ruc": "80039039", "zona": "Santa Rita", "valor_gs": 440000.0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 137, "nombre": "KARINA FELKIKER", "ruc": "4692137", "zona": "Santa Rita", "valor_gs": 165000.0, "valor_usd": 0, "obligacion": "IVA /IRP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 138, "nombre": "KELLY  HOFFMANN", "ruc": "3690516", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE SIMPLE Y IRP CAP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 139, "nombre": "Kelly Daiane Rosa", "ruc": "8255383", "zona": "Santa Rita", "valor_gs": 165000.0, "valor_usd": 0, "obligacion": "IRE SIMPLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 140, "nombre": "Kleison Kunkel", "ruc": "5347912", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE SIMPLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 141, "nombre": "KM KOEHLER & MELERE S.R.L", "ruc": "80146161", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 142, "nombre": "Laercio Scholl Bialeski", "ruc": "3236438", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRP-IRE SIMPLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 143, "nombre": "LAURA CAROLINA FERNANDEZ", "ruc": "5322957", "zona": "Santa Rita", "valor_gs": 165000.0, "valor_usd": 0, "obligacion": "IVA /IRP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 144, "nombre": "LAZARO LUIZ STUEPP", "ruc": "3594517", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRP CAPITAL Y SERV", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 145, "nombre": "LEANDRO NICOLA LOPEZ", "ruc": "4064701", "zona": "Santa Rita", "valor_gs": 165000.0, "valor_usd": 0, "obligacion": "IRP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 146, "nombre": "LEANDRO TEXEIRA", "ruc": "4245075", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 375.0, "obligacion": "CONTABLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 147, "nombre": "Leandro Valmir Huff Prass", "ruc": "3966129", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 148, "nombre": "LEMIR TERESINHA SCHORR", "ruc": "3445051", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "CONTABLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 149, "nombre": "LEONARDO NEUNBERGER", "ruc": "4106130", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE SIMPLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 150, "nombre": "Leongino Gamarra Aranda", "ruc": "1813668", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE SIMPLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 151, "nombre": "Leonice Maria Schorr", "ruc": "3958023", "zona": "Santa Rita", "valor_gs": 220000.0, "valor_usd": 0, "obligacion": "IRE SIMLES-IRP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 152, "nombre": "LEONICE MONTAGNHER", "ruc": "6962267", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE SIMPLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 153, "nombre": "LEONICIO NEUNFELD", "ruc": "4159955", "zona": "Santa Rita", "valor_gs": 375000.0, "valor_usd": 0, "obligacion": "IRP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 154, "nombre": "Lilia Villalba Niz", "ruc": "1334616", "zona": "Santa Rita", "valor_gs": 300000.0, "valor_usd": 0, "obligacion": "IRE GENEARL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 155, "nombre": "LOECI ROLIN TEXIERA", "ruc": "4075703", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE SIMPLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 156, "nombre": "LOIVA SIMONE TEWES", "ruc": "6943342", "zona": "Santa Rita", "valor_gs": 160000.0, "valor_usd": 0, "obligacion": "", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 157, "nombre": "LONASTECH EAS", "ruc": "80162962", "zona": "Santa Rita", "valor_gs": 330000.0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 158, "nombre": "LUCAS DINIZ CORDEIRO", "ruc": "8718862", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 159, "nombre": "LUCIA BECKER DE KEMPF", "ruc": "2503554", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE SIMPLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 160, "nombre": "LUCIANE FELICITA LANFERDINI", "ruc": "5899321", "zona": "Santa Rita", "valor_gs": 110000.0, "valor_usd": 0, "obligacion": "", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 161, "nombre": "LUIS FERNANDO MONTEIRO DA ROSA", "ruc": "6235891", "zona": "Santa Rita", "valor_gs": 165000.0, "valor_usd": 0, "obligacion": "", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 162, "nombre": "Luis Hugo Velazquez Benitez", "ruc": "4175768", "zona": "Santa Rita", "valor_gs": 200000.0, "valor_usd": 0, "obligacion": "IRP RSP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 163, "nombre": "Luiz Cesar John", "ruc": "7013940", "zona": "Santa Rita", "valor_gs": 165000.0, "valor_usd": 0, "obligacion": "IRE SIMPLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 164, "nombre": "Maico Bisolo", "ruc": "8260271", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE-IRP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 165, "nombre": "MAICO J. FERNANDEZ N.", "ruc": "4302858", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 166, "nombre": "MAICON BARBOSA PEREIRA", "ruc": "7192422", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 167, "nombre": "MAICON BEHNER", "ruc": "3471100", "zona": "Santa Rita", "valor_gs": 180000.0, "valor_usd": 0, "obligacion": "", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 168, "nombre": "MARCELA EGEVARTH", "ruc": "4391093", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 169, "nombre": "MARCELO ANTONI ALIRADINI", "ruc": "9151554", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 170, "nombre": "Marcelo Bisolo", "ruc": "8544853", "zona": "Santa Rita", "valor_gs": 200000.0, "valor_usd": 0, "obligacion": "IRP-SRP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 171, "nombre": "Marcelo Kunkel Yoner", "ruc": "5119371", "zona": "Santa Rita", "valor_gs": 550000.0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 172, "nombre": "MARCIA BAMPI", "ruc": "", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IVA", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 173, "nombre": "Marcio Andre  Zatta", "ruc": "6192413", "zona": "Santa Rita", "valor_gs": 275000.0, "valor_usd": 0, "obligacion": "IRP Y RE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 174, "nombre": "Marcos Alex Bisolo", "ruc": "7987898", "zona": "Santa Rita", "valor_gs": 200000.0, "valor_usd": 0, "obligacion": "IRP-IRE SIMPLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 175, "nombre": "MARCOS DANIEL SCHORR", "ruc": "3540168", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "CONTABLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 176, "nombre": "Marlice Teresinha Bohnert", "ruc": "4285641", "zona": "Santa Rita", "valor_gs": 275000.0, "valor_usd": 0, "obligacion": "IRE-IRP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 177, "nombre": "Marmoleria Cristo Rey SA", "ruc": "80053251", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 178, "nombre": "Matilde Cristobalina", "ruc": "7080523", "zona": "Santa Rita", "valor_gs": 165000.0, "valor_usd": 0, "obligacion": "IRP-RGC", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 179, "nombre": "Memoria de la Vida S.A", "ruc": "80109326", "zona": "Santa Rita", "valor_gs": 330000.0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 180, "nombre": "MESSIAS HENTIQUE DUTRA", "ruc": "", "zona": "Santa Rita", "valor_gs": 165000.0, "valor_usd": 0, "obligacion": "IVA", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 181, "nombre": "Miguel Matrakas", "ruc": "5106350", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE SIMPLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 182, "nombre": "Milton Johann", "ruc": "2156105", "zona": "Santa Rita", "valor_gs": 220000.0, "valor_usd": 0, "obligacion": "IRP-RSP-RGC", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 183, "nombre": "MILTON SEIBEL", "ruc": "", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE RESIMPLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 184, "nombre": "MOACIR G. FLACH", "ruc": "2458525", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE SIMPLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 185, "nombre": "MOBILUX SA", "ruc": "80054918", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 186, "nombre": "Myrian Graciela Paredes", "ruc": "4352009", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRP IRE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 187, "nombre": "NANCY LIVRADA RODRIGUE", "ruc": "3205005", "zona": "Santa Rita", "valor_gs": 550000.0, "valor_usd": 0, "obligacion": "IRE CONTABLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 188, "nombre": "NELSI GUNZEL", "ruc": "6144215", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE SIMPLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 189, "nombre": "NELSON DE MELO PENNA", "ruc": "9290043", "zona": "Santa Rita", "valor_gs": 200000.0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 190, "nombre": "Nelson Marlow", "ruc": "3682387", "zona": "Santa Rita", "valor_gs": 250000.0, "valor_usd": 0, "obligacion": "IRP RGC", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 191, "nombre": "NEOMAR ESBARDELOTO", "ruc": "4816072", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE SIMPLES", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 192, "nombre": "Oldemar Nadir Vorpagel Neunfeld", "ruc": "4330672", "zona": "Santa Rita", "valor_gs": 275000.0, "valor_usd": 0, "obligacion": "IRP Y IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 193, "nombre": "OMAR SELEME", "ruc": "7153394", "zona": "Santa Rita", "valor_gs": 275000.0, "valor_usd": 0, "obligacion": "IRE SIMPLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 194, "nombre": "Ortiz Import Export SA", "ruc": "80085642", "zona": "Santa Rita", "valor_gs": 660000.0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 195, "nombre": "Osmar Da Silva", "ruc": "5199956", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRP-RSP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 196, "nombre": "Osni Da Silva", "ruc": "5356050", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE SIMPLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 197, "nombre": "OTGART SEHN", "ruc": "4844460", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "CONTABLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 198, "nombre": "OXIGENA INTERMED", "ruc": "80117849", "zona": "Santa Rita", "valor_gs": 2000000.0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 199, "nombre": "Pablo Rodrigo Lu", "ruc": "3874493", "zona": "Santa Rita", "valor_gs": 165000.0, "valor_usd": 0, "obligacion": "IRP-SRP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 200, "nombre": "PARAGUAY COMUNICACIONES", "ruc": "80078607", "zona": "Santa Rita", "valor_gs": 550000.0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 201, "nombre": "PAULO NEUBERGER", "ruc": "1620986", "zona": "Santa Rita", "valor_gs": 350000.0, "valor_usd": 0, "obligacion": "IRE CONTABLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 202, "nombre": "PERFER SA", "ruc": "80114239", "zona": "Santa Rita", "valor_gs": 2000000.0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 203, "nombre": "PERLA CAROLINA CAÑETE", "ruc": "3986612", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 204, "nombre": "R&A COM. TRADING S.A", "ruc": "80110898", "zona": "Santa Rita", "valor_gs": 550000.0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 205, "nombre": "RAFAEL VEFAGO", "ruc": "6116437", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE SIMPLE-IRP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 206, "nombre": "Raifane Luis Kappi", "ruc": "5877551", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE GENERAL - IRP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 207, "nombre": "Recicladora Alianza S.A", "ruc": "80091411", "zona": "Santa Rita", "valor_gs": 660000.0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 208, "nombre": "REINALDO SANTOS SANTANA", "ruc": "8521360", "zona": "Santa Rita", "valor_gs": 330000.0, "valor_usd": 0, "obligacion": "IVA / IRE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 209, "nombre": "Repuestos Ag. Zotti S.A", "ruc": "80100281", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 220.0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 210, "nombre": "Roberto Fleitas Gimenez", "ruc": "1045318", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "CONT.", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 211, "nombre": "Roberto Neunfeld", "ruc": "4251876", "zona": "Santa Rita", "valor_gs": 275000.0, "valor_usd": 0, "obligacion": "IRE SIMPLE/IRP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 212, "nombre": "Rodoeste Repuestos S.A.", "ruc": "80039474", "zona": "Santa Rita", "valor_gs": 2500000.0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 213, "nombre": "RODOLFO KOEHLER", "ruc": "2920545", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 375.0, "obligacion": "Contable", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 214, "nombre": "Rodrigo Cañete", "ruc": "3240862", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRP ANUAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 215, "nombre": "RODRIGO DA ROCHA", "ruc": "4064659", "zona": "Santa Rita", "valor_gs": 250000.0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 216, "nombre": "Rolando Jose Rojas Jordan", "ruc": "2408234", "zona": "Santa Rita", "valor_gs": 165000.0, "valor_usd": 0, "obligacion": "IRP-RGC", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 217, "nombre": "Rosa Elena Almada", "ruc": "1491169", "zona": "Santa Rita", "valor_gs": 165000.0, "valor_usd": 0, "obligacion": "IRP IRE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 218, "nombre": "Rosangela Hoffmann", "ruc": "1620988", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "Contable y IRP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 219, "nombre": "ROSEMI BARREA ALVEZ", "ruc": "6313442", "zona": "Santa Rita", "valor_gs": 220000.0, "valor_usd": 0, "obligacion": "IRE SIMPLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 220, "nombre": "Sabrina Maciel", "ruc": "7866108", "zona": "Santa Rita", "valor_gs": 550000.0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 221, "nombre": "Samuel Colombo de Godoy", "ruc": "7439436", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE GENERAL  Y IRP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 222, "nombre": "Santa Rita Producciones S.A", "ruc": "80020525", "zona": "Santa Rita", "valor_gs": 550000.0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 223, "nombre": "Santiago de los Santos", "ruc": "3895072", "zona": "Santa Rita", "valor_gs": 88000.0, "valor_usd": 0, "obligacion": "IRE SIMPLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 224, "nombre": "SAULO DORIVAL HAHN", "ruc": "", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IVA", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 225, "nombre": "SCHOLL ZIMMERMAN HERMANOS SA", "ruc": "80148636", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 226, "nombre": "SEIS H S.A", "ruc": "80112681", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE CONTABLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 227, "nombre": "SELMAR RUTSATZ", "ruc": "2311527", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 228, "nombre": "SELSON ALOISIO SCHORR", "ruc": "2385240", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "CONTABLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 229, "nombre": "Sergio Ademi Schorr", "ruc": "2416163", "zona": "Santa Rita", "valor_gs": 440000.0, "valor_usd": 0, "obligacion": "Contable", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 230, "nombre": "Sergio David Benitez", "ruc": "2419246", "zona": "Santa Rita", "valor_gs": 220000.0, "valor_usd": 0, "obligacion": "IRE GENERAL  IRP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 231, "nombre": "SERGIO NEUMANN", "ruc": "2476633", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE SIMLES", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 232, "nombre": "SERGIO POSSENTTI", "ruc": "239260", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRP SERVICIO", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 233, "nombre": "SERGIO SELEME", "ruc": "7357180", "zona": "Santa Rita", "valor_gs": 275000.0, "valor_usd": 0, "obligacion": "IRE SIMPLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 234, "nombre": "Sermacc S.A", "ruc": "80047428", "zona": "Santa Rita", "valor_gs": 5000000.0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 235, "nombre": "SILVESTRE STUEPP", "ruc": "3757279", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE SIMP/IRP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 236, "nombre": "Simao Stuepp Schmidt", "ruc": "3542548", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE GENERAL y irp", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 237, "nombre": "SONHARE SA", "ruc": "80114510", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 238, "nombre": "STEPHANIE HOFFMANN", "ruc": "", "zona": "Santa Rita", "valor_gs": 165000.0, "valor_usd": 0, "obligacion": "IVA-IRP-RSP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 239, "nombre": "SUSANA HAHN DE DUTRA", "ruc": "", "zona": "Santa Rita", "valor_gs": 165000.0, "valor_usd": 0, "obligacion": "IVA", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 240, "nombre": "Thiago Goncalves", "ruc": "5780387", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRP RSP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 241, "nombre": "TORO RENDA SRL", "ruc": "80112922", "zona": "Santa Rita", "valor_gs": 165000.0, "valor_usd": 0, "obligacion": "", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 242, "nombre": "UNDP", "ruc": "80051443", "zona": "Santa Rita", "valor_gs": 2000000.0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 243, "nombre": "VALDERLEI MENEGAT", "ruc": "5406882", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRP Y IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 244, "nombre": "Valmir de Moura", "ruc": "6221076", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE GENEARL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 245, "nombre": "VANDERLEI A. NEUBERGER", "ruc": "1620984", "zona": "Santa Rita", "valor_gs": 330000.0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 246, "nombre": "VANDERLEI JOSE SCHORR", "ruc": "3540170", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "CONTABLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 247, "nombre": "VANDERSON ROBERTO NEUNBERGUER", "ruc": "4106128", "zona": "Santa Rita", "valor_gs": 165000.0, "valor_usd": 0, "obligacion": "", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 248, "nombre": "VANESA CRISTINA CHINI VDA DE P.", "ruc": "3910796", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE SIMPLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 249, "nombre": "VERA MARIA SCHOLL", "ruc": "4933244", "zona": "Santa Rita", "valor_gs": 400000.0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 250, "nombre": "VILCEU PIVA", "ruc": "3957658", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE SIMPLE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 251, "nombre": "Vilmar Antonio Monteiro", "ruc": "5742052", "zona": "Santa Rita", "valor_gs": 275000.0, "valor_usd": 0, "obligacion": "IRP RGC", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 252, "nombre": "VILMAR RUTESATZ ABREU", "ruc": "4192842", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 253, "nombre": "Vilson Schorr", "ruc": "2460503", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "Contable", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 254, "nombre": "VOLMIR LUIS DE SOUZA", "ruc": "3705369", "zona": "Santa Rita", "valor_gs": 70000.0, "valor_usd": 0, "obligacion": "", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 255, "nombre": "WILLIAN PAGNOCELLI", "ruc": "6291392", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 256, "nombre": "Yhenifer Johann", "ruc": "4059017", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "RG90 mensual", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 257, "nombre": "YOVERSON ANTUNEZ DARROSA", "ruc": "4195555", "zona": "Santa Rita", "valor_gs": 0, "valor_usd": 0, "obligacion": "", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 258, "nombre": "ZACARIAS RUI DIAZ ACOSTA", "ruc": "4459571", "zona": "Santa Rita", "valor_gs": 200000.0, "valor_usd": 0, "obligacion": "IRP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 259, "nombre": "MAICO BEHNE ALIEVE", "ruc": "3471100-7", "zona": "KM 32", "valor_gs": 0, "valor_usd": 0, "obligacion": "IVA / IRE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 260, "nombre": "ECO CONSTRUCTORA E.A.S", "ruc": "80145560-0", "zona": "KM 32", "valor_gs": 0, "valor_usd": 0, "obligacion": "IVA / IRE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 261, "nombre": "PABLO RAFAEL WEBER SCHERNER", "ruc": "3737161-4", "zona": "KM 32", "valor_gs": 0, "valor_usd": 0, "obligacion": "IVA / IRE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 262, "nombre": "GEOVANI SEBASTIAO DE SOUZA", "ruc": "3955931-9", "zona": "KM 32", "valor_gs": 0, "valor_usd": 0, "obligacion": "IVA / IRE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 263, "nombre": "JEAN CARLOS BARROSO", "ruc": "6104142-4", "zona": "KM 32", "valor_gs": 0, "valor_usd": 0, "obligacion": "IVA / IRE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 264, "nombre": "LOIVA SIMONE TEWES", "ruc": "6943342-9", "zona": "KM 32", "valor_gs": 0, "valor_usd": 0, "obligacion": "IVA / IRE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 265, "nombre": "SIDNEI JOSE HENTGES", "ruc": "3752272-8", "zona": "KM 32", "valor_gs": 0, "valor_usd": 0, "obligacion": "IVA / IRP", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 266, "nombre": "LUIS CARLOS ADORYAN SCHUTZ", "ruc": "3285955-4", "zona": "KM 32", "valor_gs": 0, "valor_usd": 0, "obligacion": "", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 267, "nombre": "RENALDO KAZIK SIQUEIRA", "ruc": "4466645-4", "zona": "KM 32", "valor_gs": 0, "valor_usd": 0, "obligacion": "", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 268, "nombre": "DANIELA PANATO", "ruc": "6291055-8", "zona": "KM 32", "valor_gs": 130000.0, "valor_usd": 0, "obligacion": "IVA / IRE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 269, "nombre": "COMISIÓN VECINAL UNIDOS POR SAN CRISTÓBAL", "ruc": "80125695-0", "zona": "KM 32", "valor_gs": 0, "valor_usd": 0, "obligacion": "IVA / IRE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 270, "nombre": "CLEITON MAITTO KOLASO", "ruc": "4280556-2", "zona": "KM 32", "valor_gs": 0, "valor_usd": 0, "obligacion": "IVA / IRE", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 271, "nombre": "CLEITON MONTEIRO ROZZI", "ruc": "5794356-7", "zona": "KM 32", "valor_gs": 0, "valor_usd": 0, "obligacion": "", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 272, "nombre": "VOLMIR LUIS DE SOUZA BECKER", "ruc": "3705369-8", "zona": "KM 32", "valor_gs": 0, "valor_usd": 0, "obligacion": "", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 273, "nombre": "MARCOS FERREIRA DA SILVA", "ruc": "7388999-7", "zona": "KM 32", "valor_gs": 0, "valor_usd": 0, "obligacion": "", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 274, "nombre": "BEATRIZ RODRIGUES LOPEZ", "ruc": "5112799-7", "zona": "KM 32", "valor_gs": 0, "valor_usd": 0, "obligacion": "", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 275, "nombre": "COMISIO ASOC DE MUJERES", "ruc": "80051891", "zona": "Misiones", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 276, "nombre": "ASOC DE PRODUCTORES DE PESCADOS APROM", "ruc": "80143551", "zona": "Misiones", "valor_gs": 0, "valor_usd": 0, "obligacion": "", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 277, "nombre": "Comision Vecinal los trigales", "ruc": "80097162", "zona": "Misiones", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 278, "nombre": "COMISION BARRIO DON LEOPOLDO", "ruc": "80143962", "zona": "Misiones", "valor_gs": 165000.0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 279, "nombre": "COMISION AV 14 DE MAYO", "ruc": "80094563", "zona": "Misiones", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 280, "nombre": "ASOCIACION VIGILANTES", "ruc": "80132263", "zona": "Misiones", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE GRAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 281, "nombre": "COMITÉ AGRI UNIDOS PARA EL DESARROLLO", "ruc": "80101664", "zona": "Misiones", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 282, "nombre": "COMIS ASOCIAC ESCOLAR 3827", "ruc": "80089826", "zona": "Misiones", "valor_gs": 0, "valor_usd": 0, "obligacion": "EXPERT", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 283, "nombre": "COMISION VECINAL CAMINO A SAN VICENTE", "ruc": "80150516", "zona": "Misiones", "valor_gs": 165000.0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 284, "nombre": "COMISION MUJERES SAN CAYETANO DE SANTA RITA", "ruc": "80090286", "zona": "Misiones", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 285, "nombre": "ACE ESCUELA BASICA Y SAN JOSE", "ruc": "80097537", "zona": "Misiones", "valor_gs": 110000.0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 286, "nombre": "COMISION NUEVA PLATA", "ruc": "80098159", "zona": "Misiones", "valor_gs": 0, "valor_usd": 0, "obligacion": "S/M", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 287, "nombre": "COMIT DISTR DE LA COLONIA", "ruc": "80051979", "zona": "Misiones", "valor_gs": 0, "valor_usd": 0, "obligacion": "EXPER", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 288, "nombre": "COMISION DE MUJERES VIRGEN DEL CARMEN COLONIA F.R.M", "ruc": "80078919", "zona": "Misiones", "valor_gs": 0, "valor_usd": 0, "obligacion": "", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 289, "nombre": "COMISION DIRECTIVA DEL CLUB OLIMPIA SAN JOSE", "ruc": "80059729", "zona": "Misiones", "valor_gs": 165000.0, "valor_usd": 0, "obligacion": "", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 290, "nombre": "COMISION COOPERADORA ESCOLAR ESCUELA BASICA N°1933 SANTA RITA", "ruc": "80044979", "zona": "Misiones", "valor_gs": 0, "valor_usd": 0, "obligacion": "", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 291, "nombre": "CLUB DE LEONES", "ruc": "80046942", "zona": "Misiones", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Activo", "telefono": "", "direccion": "", "notas": ""}, {"id": 292, "nombre": "Electromatic Ingenieria S.A.", "ruc": "80046281", "zona": "Suspendido", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Suspendido", "telefono": "", "direccion": "", "notas": ""}, {"id": 293, "nombre": "Jose Nienkoetter", "ruc": "50000002", "zona": "Suspendido", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE GENERAL S/M", "estado": "Suspendido", "telefono": "", "direccion": "", "notas": ""}, {"id": 294, "nombre": "Roberto Luis Neunfeld Van Der San", "ruc": "5238143", "zona": "Suspendido", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE SIMLES", "estado": "Suspendido", "telefono": "", "direccion": "", "notas": ""}, {"id": 295, "nombre": "COND.SILVESTRE STUEPP", "ruc": "80020234", "zona": "Suspendido", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE SIML", "estado": "Suspendido", "telefono": "", "direccion": "", "notas": ""}, {"id": 296, "nombre": "PEDRO JANDIR GALLAS", "ruc": "6909064", "zona": "Suspendido", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE SIMPLE", "estado": "Suspendido", "telefono": "", "direccion": "", "notas": ""}, {"id": 297, "nombre": "Makrometal Paraguay S.A", "ruc": "80099734", "zona": "Suspendido", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE CONTABLE", "estado": "Suspendido", "telefono": "", "direccion": "", "notas": ""}, {"id": 298, "nombre": "D&G CONSULTORIA", "ruc": "80137504", "zona": "Suspendido", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE GRAL", "estado": "Suspendido", "telefono": "", "direccion": "", "notas": ""}, {"id": 299, "nombre": "Dowich S.A", "ruc": "80099767", "zona": "Suspendido", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE GENERAL", "estado": "Suspendido", "telefono": "", "direccion": "", "notas": ""}, {"id": 300, "nombre": "COND. JOAO SELEME NETO", "ruc": "80028487", "zona": "Suspendido", "valor_gs": 0, "valor_usd": 0, "obligacion": "CONTABLE", "estado": "Suspendido", "telefono": "", "direccion": "", "notas": ""}, {"id": 301, "nombre": "GISELLE GATTI", "ruc": "9307901", "zona": "Suspendido", "valor_gs": 0, "valor_usd": 0, "obligacion": "S", "estado": "Suspendido", "telefono": "", "direccion": "", "notas": ""}, {"id": 302, "nombre": "SANTIAGO SANABRIA RIVAROLA", "ruc": "6717002", "zona": "Suspendido", "valor_gs": 0, "valor_usd": 0, "obligacion": "", "estado": "Suspendido", "telefono": "", "direccion": "", "notas": ""}, {"id": 303, "nombre": "Ernesto Aquino Bres", "ruc": "3344283", "zona": "Suspendido", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE GRAL", "estado": "Suspendido", "telefono": "", "direccion": "", "notas": ""}, {"id": 304, "nombre": "INKTEC PARAGUAY S.A", "ruc": "80114536", "zona": "Suspendido", "valor_gs": 0, "valor_usd": 0, "obligacion": "IRE CONTABLE", "estado": "Suspendido", "telefono": "", "direccion": "", "notas": ""}, {"id": 305, "nombre": "JORGE DANIEL SANABRIA RIVAROLA", "ruc": "6716947", "zona": "Suspendido", "valor_gs": 0, "valor_usd": 0, "obligacion": "", "estado": "Suspendido", "telefono": "", "direccion": "", "notas": ""}, {"id": 306, "nombre": "LUCAS DINIZ CORDEIRO", "ruc": "", "zona": "Suspendido", "valor_gs": 0, "valor_usd": 0, "obligacion": "IVA/ IRE G", "estado": "Suspendido", "telefono": "", "direccion": "", "notas": ""}]
+;
+
+let db = JSON.parse(localStorage.getItem('hbc2_db') || 'null');
+if (!db) {
+  db = {
+    clientes: CLIENTES_INIT.map(c => ({...c, formularios: [], valor_anual_gs: 0, valor_anual_usd: 0})),
+    control: {},
+    cobros: {},
+    pendencias: [],
+    vencimientos: [],
+    nextId: CLIENTES_INIT.length + 1
+  };
+  save();
+}
+// Migrar clientes viejos que no tengan formularios
+db.clientes.forEach(c => {
+  if (!c.formularios) c.formularios = [];
+  if (!c.valor_anual_gs) c.valor_anual_gs = 0;
+  if (!c.valor_anual_usd) c.valor_anual_usd = 0;
+});
+
+let mesActual = new Date(); mesActual.setDate(1);
+let clienteActualId = null;
+let editandoId = null;
+let pendPreset = null;
+let vencPreset = null;
+
+function save() { localStorage.setItem('hbc2_db', JSON.stringify(db)); }
+function mesKey(d) { d = d||mesActual; return d.getFullYear()+'_'+String(d.getMonth()+1).padStart(2,'0'); }
+function mesLabel(d) { d=d||mesActual; return d.toLocaleString('es-PY',{month:'long',year:'numeric'}); }
+function fmtGs(v) { return v?'₲ '+Number(v).toLocaleString('es-PY'):'-'; }
+function fmtUsd(v) { return v?'$ '+Number(v).toLocaleString():'-'; }
+
+// ===== RELOJ =====
+function tickReloj() {
+  const n = new Date();
+  document.getElementById('reloj').textContent = n.toLocaleTimeString('es-PY');
+  document.getElementById('fecha-hoy').textContent = n.toLocaleDateString('es-PY',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+}
+setInterval(tickReloj, 1000); tickReloj();
+
+// ===== NAV =====
+function nav(page, el) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  if(el) el.classList.add('active');
+  const fns = {dashboard:renderDashboard,control:renderControl,cobros:renderCobros,clientes:renderClientes,pendencias:renderPendencias,vencimientos:renderVencimientos,duplicados:renderDuplicados};
+  if(fns[page]) fns[page]();
+}
+function abrir(id){document.getElementById(id).classList.add('open');}
+function cerrar(id){document.getElementById(id).classList.remove('open');}
+function showTab(id,el,modalId){
+  const base = modalId?document.getElementById(modalId):document;
+  base.querySelectorAll('.tc').forEach(t=>t.classList.remove('active'));
+  base.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if(el) el.classList.add('active');
+}
+function showVencTab(id,el){
+  document.querySelectorAll('#page-vencimientos .tc').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('#page-vencimientos .tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('vt-'+id).classList.add('active');
+  if(el) el.classList.add('active');
+  if(id==='auto') renderVencAuto();
+  if(id==='manual') renderVencManual();
+}
+function cambiarMes(d) {
+  mesActual.setMonth(mesActual.getMonth()+d);
+  document.querySelectorAll('[id$="-mes-lbl"]').forEach(el=>el.textContent=mesLabel());
+  renderControl(); renderCobros(); renderDashboard(); renderVencAuto();
+}
+
+// ===== DASHBOARD =====
+function renderDashboard() {
+  document.getElementById('dash-mes-lbl').textContent = mesLabel();
+  const act = db.clientes.filter(c=>c.estado==='Activo');
+  document.getElementById('s-total').textContent = act.length;
+  const mk = mesKey();
+  let comp=0;
+  act.forEach(c=>{const ctrl=db.control[c.id+'_'+mk]||{};if(ctrl._done) comp++;});
+  const pct = act.length?Math.round(comp/act.length*100):0;
+  document.getElementById('s-pct').textContent=pct+'%';
+  document.getElementById('s-prog').style.width=pct+'%';
+  const sinCobrar = act.filter(c=>(c.valor_gs>0||c.valor_usd>0)&&db.cobros[c.id+'_'+mk]!=='pagado');
+  document.getElementById('s-deuda').textContent=sinCobrar.length;
+  // Vencen hoy
+  const hoy = new Date();
+  const vencHoy = act.filter(c=>{
+    const f=fechaVencMes(c.ruc,mesActual.getFullYear(),mesActual.getMonth());
+    return f&&f.getDate()===hoy.getDate()&&f.getMonth()===hoy.getMonth()&&f.getFullYear()===hoy.getFullYear();
+  });
+  document.getElementById('s-hoy').textContent=vencHoy.length;
+  document.getElementById('dash-hoy-count').textContent=vencHoy.length;
+  document.getElementById('dash-hoy-lista').innerHTML = vencHoy.slice(0,5).map(c=>`
+    <div class="cobro-item"><div><div style="font-size:0.81rem;font-weight:500">${c.nombre}</div><div style="font-size:0.69rem;color:var(--text2)">${c.obligacion||'—'} · RUC ${c.ruc||'—'}</div></div><span class="badge by">Vence hoy</span></div>
+  `).join('')||'<div class="empty" style="padding:14px">Ninguno vence hoy</div>';
+  // Pendencias urgentes
+  const pends = db.pendencias.filter(p=>p.estado==='activa'&&p.prioridad==='urgent').slice(0,4);
+  document.getElementById('dash-pend-lista').innerHTML = pends.map(p=>{
+    const c=db.clientes.find(x=>x.id==p.cliente_id);
+    return `<div class="pend-item urgent"><div class="pend-desc">${p.descripcion}<div class="pend-meta">${c?c.nombre:'—'} · ${p.fecha||'Sin fecha'}</div></div><button class="btn btn-sm btn-green" onclick="resolverPend(${p.id})">✓</button></div>`;
+  }).join('')||'<div class="empty" style="padding:14px">Sin urgentes 🎉</div>';
+  // Sin cobrar
+  document.getElementById('dash-cobros-lista').innerHTML = sinCobrar.slice(0,5).map(c=>`
+    <div class="cobro-item"><div><div style="font-size:0.81rem">${c.nombre}</div><div style="font-size:0.69rem;color:var(--text2)">${c.zona}</div></div><span style="color:var(--gold);font-family:'Cormorant Garamond',serif">${c.valor_gs?fmtGs(c.valor_gs):fmtUsd(c.valor_usd)}</span></div>
+  `).join('')||'<div class="empty" style="padding:14px">Todos cobrados ✓</div>';
+  // Progreso
+  const zonas = ['Santa Rita','KM 32','Misiones'];
+  document.getElementById('dash-ctrl-lista').innerHTML = zonas.map(z=>{
+    const zc = act.filter(c=>c.zona===z);
+    const zcomp = zc.filter(c=>(db.control[c.id+'_'+mk]||{})._done).length;
+    const zpct = zc.length?Math.round(zcomp/zc.length*100):0;
+    return `<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:4px"><span>${z}</span><span style="color:var(--text2)">${zcomp}/${zc.length} — ${zpct}%</span></div><div class="progress-bar"><div class="progress-fill" style="width:${zpct}%"></div></div></div>`;
+  }).join('');
+}
+
+// ===== CONTROL MENSUAL =====
+function renderControl() {
+  document.getElementById('ctrl-mes-lbl').textContent = mesLabel();
+  const buscar = document.getElementById('ctrl-buscar').value.toLowerCase();
+  const zona = document.getElementById('ctrl-zona').value;
+  const estFiltro = document.getElementById('ctrl-estado').value;
+  const mk = mesKey();
+  let lista = db.clientes.filter(c=>c.estado==='Activo');
+  if(zona) lista=lista.filter(c=>c.zona===zona);
+  if(buscar) lista=lista.filter(c=>c.nombre.toLowerCase().includes(buscar));
+  if(estFiltro==='completo') lista=lista.filter(c=>(db.control[c.id+'_'+mk]||{})._done);
+  if(estFiltro==='pendiente') lista=lista.filter(c=>!(db.control[c.id+'_'+mk]||{})._done);
+  // Stats
+  let tots={done:0,total:lista.length};
+  lista.forEach(c=>{if((db.control[c.id+'_'+mk]||{})._done)tots.done++;});
+  const pct=lista.length?Math.round(tots.done/lista.length*100):0;
+  document.getElementById('ctrl-stats').innerHTML=`
+    <div class="stat-card" style="padding:10px 14px;flex:1"><div class="stat-label">Completados</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+        <span style="font-family:'Cormorant Garamond',serif;font-size:1.3rem;color:var(--green2)">${tots.done}/${lista.length}</span>
+        <div style="flex:1"><div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div></div>
+        <span style="font-size:0.78rem;color:var(--text2)">${pct}%</span>
+      </div>
+    </div>
+  `;
+  const el=document.getElementById('ctrl-lista');
+  if(!lista.length){el.innerHTML='<div class="empty">No hay clientes</div>';return;}
+  el.innerHTML=lista.map(c=>{
+    const ctrl=db.control[c.id+'_'+mk]||{};
+    const forms=c.formularios&&c.formularios.length?c.formularios:['Sin formularios asignados'];
+    const formBtns=forms.map(f=>{
+      const st=ctrl[f]||'none';
+      return `<button class="ctrl-btn ${st==='done'?'done':st==='partial'?'partial':''}" onclick="toggleCtrl(${c.id},\`${f}\`,'${mk}')" title="${f}">${f}</button>`;
+    }).join('');
+    const done=(db.control[c.id+'_'+mk]||{})._done;
+    return `<div class="ctrl-row">
+      <div class="ctrl-client" onclick="verCliente(${c.id})">${c.nombre}</div>
+      <div class="ctrl-forms">${formBtns}</div>
+      <div class="ctrl-status">
+        <button class="btn btn-sm ${done?'btn-green':'btn-outline'}" onclick="toggleDone(${c.id},'${mk}')">${done?'✓ Listo':'Marcar listo'}</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleCtrl(cid,form,mk){
+  const key=cid+'_'+mk;
+  if(!db.control[key])db.control[key]={};
+  const cur=db.control[key][form]||'none';
+  db.control[key][form]=cur==='none'?'done':cur==='done'?'partial':'none';
+  save();renderControl();
+}
+function toggleDone(cid,mk){
+  const key=cid+'_'+mk;
+  if(!db.control[key])db.control[key]={};
+  db.control[key]._done=!db.control[key]._done;
+  save();renderControl();renderDashboard();
+}
+
+// ===== COBROS =====
+function renderCobros(){
+  document.getElementById('cobros-mes-lbl').textContent=mesLabel();
+  const mk=mesKey();
+  const filtro=document.getElementById('cobros-filtro').value;
+  const buscar=document.getElementById('cobros-buscar').value.toLowerCase();
+  let lista=db.clientes.filter(c=>c.valor_gs>0||c.valor_usd>0);
+  if(buscar)lista=lista.filter(c=>c.nombre.toLowerCase().includes(buscar)||c.ruc.includes(buscar));
+  let tgs=0,cgs=0;
+  lista.forEach(c=>{tgs+=c.valor_gs||0;if(db.cobros[c.id+'_'+mk]==='pagado')cgs+=c.valor_gs||0;});
+  document.getElementById('c-tgs').textContent='₲ '+tgs.toLocaleString('es-PY');
+  document.getElementById('c-cob').textContent='₲ '+cgs.toLocaleString('es-PY');
+  document.getElementById('c-pen').textContent='₲ '+(tgs-cgs).toLocaleString('es-PY');
+  if(filtro==='pendiente')lista=lista.filter(c=>db.cobros[c.id+'_'+mk]!=='pagado');
+  if(filtro==='pagado')lista=lista.filter(c=>db.cobros[c.id+'_'+mk]==='pagado');
+  document.getElementById('cobros-cnt').textContent=lista.length+' clientes';
+  document.getElementById('cobros-tabla').innerHTML=lista.map(c=>{
+    const pag=db.cobros[c.id+'_'+mk]==='pagado';
+    return `<tr><td onclick="verCliente(${c.id})">${c.nombre}</td><td style="color:var(--text2)">${c.ruc||'—'}</td><td style="font-size:0.75rem;color:var(--text2)">${c.obligacion||'—'}</td><td style="color:var(--gold)">${fmtGs(c.valor_gs)}</td><td style="color:var(--blue2)">${fmtUsd(c.valor_usd)}</td>
+      <td><span class="badge ${pag?'bg':'br'}">${pag?'Pagado':'Pendiente'}</span></td>
+      <td onclick="event.stopPropagation()"><button class="btn btn-sm ${pag?'btn-outline':'btn-gold'}" onclick="toggleCobro(${c.id},'${mk}')">${pag?'Revertir':'Cobrar'}</button></td></tr>`;
+  }).join('');
+}
+function toggleCobro(cid,mk){db.cobros[cid+'_'+mk]=db.cobros[cid+'_'+mk]==='pagado'?'pendiente':'pagado';save();renderCobros();renderDashboard();}
+
+// ===== CLIENTES =====
+function renderClientes(){
+  const buscar=document.getElementById('cli-buscar').value.toLowerCase();
+  const zona=document.getElementById('cli-zona').value;
+  const est=document.getElementById('cli-estado').value;
+  let lista=db.clientes;
+  if(buscar)lista=lista.filter(c=>(c.nombre+c.ruc).toLowerCase().includes(buscar));
+  if(zona)lista=lista.filter(c=>c.zona===zona);
+  if(est)lista=lista.filter(c=>c.estado===est);
+  document.getElementById('cli-cnt').textContent=lista.length+' clientes';
+  // Detectar dups
+  const rucs={};
+  db.clientes.forEach(c=>{if(c.ruc){if(!rucs[c.ruc])rucs[c.ruc]=0;rucs[c.ruc]++;}});
+  const dupRucs=Object.keys(rucs).filter(r=>rucs[r]>1);
+  document.getElementById('cli-dup-warn').textContent=dupRucs.length?`⚠ ${dupRucs.length} RUC duplicados detectados`:'';
+  document.getElementById('clientes-tabla').innerHTML=lista.map(c=>{
+    const dia=diaVencimiento(c.ruc);
+    const isDup=c.ruc&&dupRucs.includes(String(c.ruc));
+    return `<tr onclick="verCliente(${c.id})" style="${isDup?'background:rgba(185,154,58,0.06)':''}">
+      <td><strong>${c.nombre}</strong>${isDup?'<span class="badge by" style="margin-left:6px">RUC dup</span>':''}</td>
+      <td style="color:var(--text2)">${c.ruc||'—'}</td>
+      <td><span class="badge bgr">${c.zona}</span></td>
+      <td style="font-size:0.75rem;color:var(--text2)">${c.obligacion||'—'}</td>
+      <td><span class="venc-badge">${dia?'Día '+dia:'—'}</span></td>
+      <td style="color:var(--gold)">${fmtGs(c.valor_gs)}</td>
+      <td style="color:var(--blue2)">${fmtUsd(c.valor_usd)}</td>
+      <td><span class="badge ${c.estado==='Activo'?'bg':c.estado==='Suspendido'?'br':'bgr'}">${c.estado}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+// ===== VER CLIENTE =====
+function verCliente(id){
+  const c=db.clientes.find(x=>x.id===id);if(!c)return;
+  clienteActualId=id;
+  document.getElementById('det-nombre').textContent=c.nombre;
+  const dia=diaVencimiento(c.ruc);
+  const fv=dia?fechaVencMes(c.ruc,mesActual.getFullYear(),mesActual.getMonth()):null;
+  document.getElementById('det-ig').innerHTML=`
+    <div class="ii"><div class="il">RUC</div><div class="iv">${c.ruc||'—'}</div></div>
+    <div class="ii"><div class="il">Zona</div><div class="iv">${c.zona}</div></div>
+    <div class="ii"><div class="il">Obligación</div><div class="iv">${c.obligacion||'—'}</div></div>
+    <div class="ii"><div class="il">Estado</div><div class="iv"><span class="badge ${c.estado==='Activo'?'bg':c.estado==='Suspendido'?'br':'bgr'}">${c.estado}</span></div></div>
+    <div class="ii"><div class="il">Valor mensual GS</div><div class="iv" style="color:var(--gold)">${fmtGs(c.valor_gs)}</div></div>
+    <div class="ii"><div class="il">Valor mensual USD</div><div class="iv" style="color:var(--blue2)">${fmtUsd(c.valor_usd)}</div></div>
+    <div class="ii"><div class="il">Valor anual GS</div><div class="iv" style="color:var(--gold)">${fmtGs(c.valor_anual_gs)}</div></div>
+    <div class="ii"><div class="il">Valor anual USD</div><div class="iv" style="color:var(--blue2)">${fmtUsd(c.valor_anual_usd)}</div></div>
+    <div class="ii"><div class="il">Día vencimiento DNIT</div><div class="iv"><span class="venc-badge">${dia?'Día '+dia:'Sin RUC'}</span>${fv?` → ${fv.toLocaleDateString('es-PY',{day:'numeric',month:'short'})}`:''}</div></div>
+    <div class="ii"><div class="il">Teléfono</div><div class="iv">${c.telefono||'—'}</div></div>
+    ${c.direccion?`<div class="ii" style="grid-column:1/-1"><div class="il">Dirección</div><div class="iv">${c.direccion}</div></div>`:''}
+    ${c.notas?`<div class="ii" style="grid-column:1/-1"><div class="il">Notas</div><div class="iv">${c.notas}</div></div>`:''}
+  `;
+  // Formularios del cliente
+  const mk=mesKey();
+  const ctrl=db.control[c.id+'_'+mk]||{};
+  const forms=c.formularios&&c.formularios.length?c.formularios:[];
+  document.getElementById('det-forms-body').innerHTML=`
+    <div style="margin-bottom:10px;color:var(--text2);font-size:0.79rem">Control de formularios — ${mesLabel()}</div>
+    ${forms.length?forms.map(f=>{
+      const st=ctrl[f]||'none';
+      return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 11px;background:var(--s2);border-radius:5px;margin-bottom:5px">
+        <span style="font-size:0.81rem">${f}</span>
+        <button class="ctrl-btn ${st==='done'?'done':st==='partial'?'partial':''}" onclick="toggleCtrl(${c.id},\`${f}\`,'${mk}');verCliente(${id})">${st==='done'?'✓ Listo':st==='partial'?'En proceso':'Pendiente'}</button>
+      </div>`;
+    }).join(''):'<div class="empty">Este cliente no tiene formularios asignados.<br>Editá el cliente para agregar.</div>'}
+    <div style="margin-top:12px">
+      <button class="btn btn-sm ${ctrl._done?'btn-green':'btn-outline'} " onclick="toggleDone(${c.id},'${mk}');verCliente(${id})">${ctrl._done?'✓ Trabajo marcado como listo':'Marcar trabajo como listo'}</button>
+    </div>
+  `;
+  // Cobros últimos 3 meses
+  let cobHtml='';
+  for(let i=0;i<3;i++){const d=new Date(mesActual);d.setMonth(d.getMonth()-i);const k=mesKey(d);const pag=db.cobros[c.id+'_'+k]==='pagado';cobHtml+=`<div class="cobro-item"><div><div style="font-size:0.81rem">${mesLabel(d)}</div><div style="font-size:0.69rem;color:var(--text2)">${c.valor_gs?fmtGs(c.valor_gs):fmtUsd(c.valor_usd)}</div></div><div style="display:flex;gap:6px;align-items:center"><span class="badge ${pag?'bg':'br'}">${pag?'Pagado':'Pendiente'}</span><button class="btn btn-sm btn-outline" onclick="toggleCobro(${c.id},'${k}');verCliente(${id})">${pag?'Revertir':'Cobrar'}</button></div></div>`;}
+  document.getElementById('det-cobros-body').innerHTML=cobHtml;
+  // Pendencias del cliente
+  const pends=db.pendencias.filter(p=>p.cliente_id==id);
+  document.getElementById('det-pends-body').innerHTML=pends.length?pends.map(p=>`
+    <div class="pend-item ${p.prioridad}" style="opacity:${p.estado==='resuelta'?'0.5':'1'}">
+      <div class="pend-desc">${p.descripcion}<div class="pend-meta">${p.fecha||'Sin fecha'} · <span class="badge ${p.estado==='resuelta'?'bg':'br'}">${p.estado}</span></div></div>
+      <div style="display:flex;gap:5px">${p.estado!=='resuelta'?`<button class="btn btn-sm btn-green" onclick="resolverPend(${p.id});verCliente(${id})">✓</button>`:''}<button class="btn btn-sm btn-danger" onclick="eliminarPend(${p.id});verCliente(${id})">✕</button></div>
+    </div>
+  `).join(''):'<div class="empty">Sin pendencias</div>';
+  // Resetear tabs
+  document.querySelectorAll('#m-det .tab').forEach((t,i)=>t.classList.toggle('active',i===0));
+  document.querySelectorAll('#m-det .tc').forEach((t,i)=>t.classList.toggle('active',i===0));
+  abrir('m-det');
+}
+
+// ===== NUEVO/EDITAR CLIENTE =====
+function abrirNuevoCliente(){
+  editandoId=null;
+  document.getElementById('m-cli-tit').textContent='Nuevo Cliente';
+  ['nc-nom','nc-ruc','nc-oblig','nc-tel','nc-dir','nc-notas'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('nc-gs').value=0;document.getElementById('nc-usd').value=0;
+  document.getElementById('nc-ags').value=0;document.getElementById('nc-ausd').value=0;
+  document.querySelectorAll('.form-tag').forEach(t=>t.classList.remove('active'));
+  // Limpiar extras
+  document.querySelectorAll('.form-tag-extra').forEach(t=>t.remove());
+  abrir('m-cli');
+}
+function editarCliente(){
+  const c=db.clientes.find(x=>x.id===clienteActualId);if(!c)return;
+  editandoId=c.id;
+  document.getElementById('m-cli-tit').textContent='Editar Cliente';
+  document.getElementById('nc-nom').value=c.nombre;
+  document.getElementById('nc-ruc').value=c.ruc;
+  document.getElementById('nc-zona').value=c.zona;
+  document.getElementById('nc-oblig').value=c.obligacion||'';
+  document.getElementById('nc-gs').value=c.valor_gs||0;
+  document.getElementById('nc-usd').value=c.valor_usd||0;
+  document.getElementById('nc-ags').value=c.valor_anual_gs||0;
+  document.getElementById('nc-ausd').value=c.valor_anual_usd||0;
+  document.getElementById('nc-tel').value=c.telefono||'';
+  document.getElementById('nc-est').value=c.estado||'Activo';
+  document.getElementById('nc-dir').value=c.direccion||'';
+  document.getElementById('nc-notas').value=c.notas||'';
+  // Formularios
+  document.querySelectorAll('.form-tag').forEach(t=>{t.classList.toggle('active',(c.formularios||[]).includes(t.dataset.f));});
+  document.querySelectorAll('.form-tag-extra').forEach(t=>t.remove());
+  (c.formularios||[]).forEach(f=>{
+    if(!document.querySelector(`.form-tag[data-f="${f}"]`)){
+      const s=document.createElement('span');s.className='form-tag form-tag-extra active';s.dataset.f=f;
+      s.innerHTML=f+' <small onclick="this.parentNode.remove()" style="cursor:pointer;color:var(--red2)">✕</small>';
+      s.onclick=()=>s.classList.toggle('active');
+      document.getElementById('form-tags-container').appendChild(s);
+    }
+  });
+  cerrar('m-det');abrir('m-cli');
+}
+function toggleFormTag(el){el.classList.toggle('active');}
+function addFormExtra(){
+  const val=document.getElementById('nc-form-extra').value.trim();
+  if(!val)return;
+  const s=document.createElement('span');s.className='form-tag form-tag-extra active';s.dataset.f=val;
+  s.innerHTML=val+' <small onclick="this.parentNode.remove()" style="cursor:pointer;color:var(--red2)">✕</small>';
+  s.onclick=function(e){if(e.target.tagName!=='SMALL')s.classList.toggle('active');};
+  document.getElementById('form-tags-container').appendChild(s);
+  document.getElementById('nc-form-extra').value='';
+}
+function guardarCliente(){
+  const forms=[...document.querySelectorAll('.form-tag.active')].map(t=>t.dataset.f);
+  const c={
+    nombre:document.getElementById('nc-nom').value.trim(),
+    ruc:document.getElementById('nc-ruc').value.trim(),
+    zona:document.getElementById('nc-zona').value,
+    obligacion:document.getElementById('nc-oblig').value.trim(),
+    valor_gs:parseFloat(document.getElementById('nc-gs').value)||0,
+    valor_usd:parseFloat(document.getElementById('nc-usd').value)||0,
+    valor_anual_gs:parseFloat(document.getElementById('nc-ags').value)||0,
+    valor_anual_usd:parseFloat(document.getElementById('nc-ausd').value)||0,
+    telefono:document.getElementById('nc-tel').value.trim(),
+    estado:document.getElementById('nc-est').value,
+    direccion:document.getElementById('nc-dir').value.trim(),
+    notas:document.getElementById('nc-notas').value.trim(),
+    formularios:forms
+  };
+  if(!c.nombre){alert('El nombre es requerido');return;}
+  if(editandoId){const idx=db.clientes.findIndex(x=>x.id===editandoId);if(idx>=0)db.clientes[idx]={...db.clientes[idx],...c};}
+  else{c.id=db.nextId++;db.clientes.push(c);}
+  save();cerrar('m-cli');renderClientes();
+}
+function eliminarCliente(){
+  if(!confirm('¿Eliminar este cliente permanentemente?'))return;
+  db.clientes=db.clientes.filter(c=>c.id!==clienteActualId);
+  save();cerrar('m-det');renderClientes();
+}
+
+// ===== PENDENCIAS =====
+function poblarClis(selId,preset){
+  const s=document.getElementById(selId);
+  s.innerHTML=db.clientes.filter(c=>c.estado==='Activo').map(c=>`<option value="${c.id}" ${preset==c.id?'selected':''}>${c.nombre}</option>`).join('');
+}
+function abrirNuevaPend(){pendPreset=null;poblarClis('p-cli',null);document.getElementById('p-desc').value='';document.getElementById('p-fecha').value='';abrir('m-pend');}
+function abrirNuevaPendCliente(){pendPreset=clienteActualId;cerrar('m-det');poblarClis('p-cli',pendPreset);document.getElementById('p-desc').value='';abrir('m-pend');}
+function guardarPend(){
+  const p={id:Date.now(),cliente_id:document.getElementById('p-cli').value,descripcion:document.getElementById('p-desc').value.trim(),fecha:document.getElementById('p-fecha').value,prioridad:document.getElementById('p-prior').value,estado:'activa'};
+  if(!p.descripcion){alert('Ingresá descripción');return;}
+  db.pendencias.push(p);save();cerrar('m-pend');renderPendencias();renderDashboard();
+}
+function resolverPend(id){const p=db.pendencias.find(x=>x.id==id);if(p){p.estado='resuelta';save();renderPendencias();renderDashboard();}}
+function eliminarPend(id){if(!confirm('¿Eliminar?'))return;db.pendencias=db.pendencias.filter(p=>p.id!=id);save();renderPendencias();renderDashboard();}
+function renderPendencias(){
+  const buscar=document.getElementById('pend-buscar').value.toLowerCase();
+  const prior=document.getElementById('pend-prior').value;
+  const est=document.getElementById('pend-est').value;
+  let lista=db.pendencias;
+  if(buscar)lista=lista.filter(p=>{const c=db.clientes.find(x=>x.id==p.cliente_id);return p.descripcion.toLowerCase().includes(buscar)||(c&&c.nombre.toLowerCase().includes(buscar));});
+  if(prior)lista=lista.filter(p=>p.prioridad===prior);
+  if(est)lista=lista.filter(p=>p.estado===est);
+  lista=[...lista].sort((a,b)=>({urgent:0,soon:1,ok:2}[a.prioridad]||2)-({urgent:0,soon:1,ok:2}[b.prioridad]||2));
+  document.getElementById('pend-lista').innerHTML=lista.length?lista.map(p=>{
+    const c=db.clientes.find(x=>x.id==p.cliente_id);
+    return `<div class="pend-item ${p.prioridad}" style="opacity:${p.estado==='resuelta'?'0.5':'1'}">
+      <div class="pend-desc">${p.descripcion}<div class="pend-meta">${c?c.nombre:'—'} · ${p.fecha||'Sin fecha'} · <span class="badge ${p.estado==='resuelta'?'bg':'br'}">${p.estado}</span></div></div>
+      <div style="display:flex;gap:5px">${p.estado!=='resuelta'?`<button class="btn btn-sm btn-green" onclick="resolverPend(${p.id})">✓</button>`:''}<button class="btn btn-sm btn-danger" onclick="eliminarPend(${p.id})">✕</button></div>
+    </div>`;
+  }).join(''):'<div class="empty">Sin pendencias</div>';
+}
+
+// ===== VENCIMIENTOS =====
+function renderVencAuto(){
+  document.getElementById('venc-mes-lbl').textContent=mesLabel();
+  const buscar=document.getElementById('venc-buscar').value.toLowerCase();
+  const zona=document.getElementById('venc-zona').value;
+  const hoy=new Date();
+  let lista=db.clientes.filter(c=>c.estado==='Activo'&&c.ruc);
+  if(buscar)lista=lista.filter(c=>c.nombre.toLowerCase().includes(buscar)||c.ruc.includes(buscar));
+  if(zona)lista=lista.filter(c=>c.zona===zona);
+  lista=[...lista].sort((a,b)=>{const da=diaVencimiento(a.ruc)||99,db2=diaVencimiento(b.ruc)||99;return da-db2;});
+  const tbody=document.getElementById('venc-auto-tabla');
+  tbody.innerHTML=lista.map(c=>{
+    const dia=diaVencimiento(c.ruc);
+    const fv=fechaVencMes(c.ruc,mesActual.getFullYear(),mesActual.getMonth());
+    const dias=fv?Math.round((fv-hoy)/86400000):null;
+    let diasStr='—',diasCls='';
+    if(dias!==null){if(dias<0){diasStr=`Vencido ${Math.abs(dias)}d`;diasCls='color:var(--red2)';}else if(dias===0){diasStr='HOY';diasCls='color:var(--yellow2);font-weight:bold';}else if(dias<=3){diasStr=`${dias} días`;diasCls='color:var(--yellow2)';}else{diasStr=`${dias} días`;diasCls='color:var(--text2)';}}
+    return `<tr><td onclick="verCliente(${c.id})">${c.nombre}</td><td style="color:var(--text2)">${c.ruc}</td><td style="text-align:center">${c.ruc?c.ruc.split('-')[0].replace(/[^0-9]/g,'').slice(-1):'—'}</td><td style="text-align:center"><span class="venc-badge">${dia?'Día '+dia:'—'}</span></td><td>${fv?fv.toLocaleDateString('es-PY',{day:'numeric',month:'short',year:'numeric'}):'—'}</td><td style="${diasCls}">${diasStr}</td><td style="font-size:0.74rem;color:var(--text2)">${c.obligacion||'—'}</td></tr>`;
+  }).join('');
+}
+function renderVencManual(){
+  const lista=[...db.vencimientos].sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  const hoy=new Date();
+  document.getElementById('venc-manual-lista').innerHTML=lista.length?lista.map(v=>{
+    const c=db.clientes.find(x=>x.id==v.cliente_id);
+    const fv=new Date(v.fecha+'T00:00:00');
+    const dias=Math.round((fv-hoy)/86400000);
+    const diasStr=dias<0?`Vencido hace ${Math.abs(dias)}d`:dias===0?'HOY':`En ${dias}d`;
+    return `<div class="venc-item"><div class="dot ${v.prioridad}"></div>
+      <div style="flex:1"><div style="font-size:0.81rem;font-weight:500">${v.descripcion}</div><div style="font-size:0.69rem;color:var(--text2)">${c?c.nombre:'—'}</div></div>
+      <div style="text-align:right;font-size:0.78rem"><div>${v.fecha}</div><div style="margin-top:2px;color:var(--text2)">${diasStr}</div></div>
+      <button class="btn btn-sm btn-danger" style="margin-left:8px" onclick="eliminarVenc(${v.id})">✕</button>
+    </div>`;
+  }).join(''):'<div class="empty">Sin vencimientos manuales</div>';
+}
+function renderVencimientos(){renderVencAuto();renderVencManual();}
+function abrirNuevoVenc(){vencPreset=null;poblarClis('v-cli',null);document.getElementById('v-desc').value='';document.getElementById('v-fecha').value='';abrir('m-venc');}
+function abrirNuevoVencCliente(){vencPreset=clienteActualId;cerrar('m-det');poblarClis('v-cli',vencPreset);document.getElementById('v-desc').value='';abrir('m-venc');}
+function guardarVenc(){
+  const v={id:Date.now(),cliente_id:document.getElementById('v-cli').value,descripcion:document.getElementById('v-desc').value.trim(),fecha:document.getElementById('v-fecha').value,prioridad:document.getElementById('v-prior').value};
+  if(!v.descripcion){alert('Ingresá descripción');return;}
+  db.vencimientos.push(v);save();cerrar('m-venc');renderVencimientos();
+}
+function eliminarVenc(id){if(!confirm('¿Eliminar?'))return;db.vencimientos=db.vencimientos.filter(v=>v.id!=id);save();renderVencManual();}
+
+// ===== DUPLICADOS =====
+function renderDuplicados(){
+  const rucs={},nombres={};
+  db.clientes.forEach(c=>{
+    if(c.ruc){const r=String(c.ruc).trim();if(!rucs[r])rucs[r]=[];rucs[r].push(c);}
+    const n=c.nombre.trim().toLowerCase();if(!nombres[n])nombres[n]=[];nombres[n].push(c);
+  });
+  const dupRucs=Object.entries(rucs).filter(([,v])=>v.length>1);
+  const dupNoms=Object.entries(nombres).filter(([,v])=>v.length>1);
+  let html='';
+  if(dupRucs.length){html+=`<div class="alert warn">⚠ Se encontraron ${dupRucs.length} RUC con más de un cliente</div>`;
+    html+=dupRucs.map(([ruc,clientes])=>`
+      <div class="dup-item">
+        <div style="flex:1"><div style="font-size:0.8rem;color:var(--text3);margin-bottom:4px">RUC duplicado: <strong style="color:var(--yellow2)">${ruc}</strong></div>
+        ${clientes.map(c=>`<div style="font-size:0.82rem;display:flex;align-items:center;gap:8px;margin-bottom:3px"><span>${c.nombre}</span><span class="badge bgr">${c.zona}</span><button class="btn btn-sm btn-danger" onclick="confirmarEliminar(${c.id})">Eliminar</button></div>`).join('')}
+        </div>
+      </div>`).join('');}
+  if(dupNoms.length){html+=`<div class="alert warn" style="margin-top:12px">⚠ Se encontraron ${dupNoms.length} nombres similares</div>`;
+    html+=dupNoms.map(([nom,clientes])=>`
+      <div class="dup-item">
+        <div style="flex:1"><div style="font-size:0.8rem;color:var(--text3);margin-bottom:4px">Nombre duplicado: <strong style="color:var(--yellow2)">${clientes[0].nombre}</strong></div>
+        ${clientes.map(c=>`<div style="font-size:0.82rem;display:flex;align-items:center;gap:8px;margin-bottom:3px"><span>${c.nombre}</span><span class="badge bgr">${c.zona}</span><span style="color:var(--text2)">${c.ruc||'sin RUC'}</span><button class="btn btn-sm btn-danger" onclick="confirmarEliminar(${c.id})">Eliminar</button></div>`).join('')}
+        </div>
+      </div>`).join('');}
+  if(!dupRucs.length&&!dupNoms.length)html='<div class="empty" style="padding:40px">✓ No se detectaron duplicados</div>';
+  document.getElementById('dup-resultado').innerHTML=html;
+}
+function confirmarEliminar(id){
+  const c=db.clientes.find(x=>x.id===id);
+  if(!c)return;
+  if(confirm(`¿Eliminar a "${c.nombre}"?`)){db.clientes=db.clientes.filter(x=>x.id!==id);save();renderDuplicados();renderClientes();}
+}
+
+// INIT
+document.querySelectorAll('[id$="-mes-lbl"]').forEach(el=>el.textContent=mesLabel());
+renderDashboard();
+</script>
+</body>
+</html>

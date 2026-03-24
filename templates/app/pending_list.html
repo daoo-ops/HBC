@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% block title %}Pendientes{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h2>Pendientes</h2>
+  <a class="btn" href="/app/pending-items/new/">Nuevo pendiente</a>
+</div>
+<div class="panel">
+  <form method="get" class="filters">
+    <input type="text" name="q" placeholder="Buscar" value="{{ q }}">
+    <select name="status">
+      <option value="">Abiertas + Resueltas</option>
+      {% for value,label in status_choices %}
+        <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <select name="priority">
+      <option value="">Todas las prioridades</option>
+      {% for value,label in priority_choices %}
+        <option value="{{ value }}" {% if priority_filter == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <button class="btn">Filtrar</button>
+  </form>
+</div>
+<div
+  class="panel pending-panel{% if not open_items %} pending-panel-empty{% endif %}"
+  data-collapsible-id="pending-list-open"
+  {% if not open_items %}data-collapsible-default="collapsed"{% endif %}
+>
+  <div class="collapse-head collapse-head-compact">
+    <div class="collapse-title-wrap">
+      <button type="button" class="collapse-toggle-inline" data-collapse-toggle>
+        <span class="collapse-chevron">▾</span>
+        <span>Pendientes abiertos</span>
+      </button>
+      <span class="panel-count-badge{% if not open_items %} panel-count-badge-empty{% endif %}">{{ open_items|length }}</span>
+    </div>
+  </div>
+  <div class="collapse-body">
+    {% if open_items %}
+      <div class="table-wrap compact-table"><table>
+        <thead><tr><th>Cliente</th><th>Descripción</th><th>Prioridad</th><th>Fecha</th><th>Origen</th><th>Acciones</th></tr></thead>
+        <tbody>
+        {% for item in open_items %}
+          <tr>
+            <td><a href="/app/clients/{{ item.client_id }}/">{{ item.client.name }}</a></td>
+            <td>{{ item.description }}</td>
+            <td><span class="status-badge {{ item.priority|lower }}">{{ item.get_priority_display }}</span></td>
+            <td>{{ item.expected_date|default:"-" }}</td>
+            <td>
+              <div class="pending-origin-cell">
+                {% if item.bank_request_id %}
+                  <span class="status-badge info">{{ item.origin_label }}</span>
+                {% else %}
+                  <span class="muted">{{ item.origin_label }}</span>
+                {% endif %}
+              </div>
+            </td>
+            <td class="table-actions">
+              <div class="pending-actions-cell">
+                <div class="pending-actions-row">
+                  {% if item.bank_request_id and item.bank_request_url %}
+                    <a class="pending-action-btn pending-action-secondary" href="{{ item.bank_request_url }}">Ir a solicitud</a>
+                  {% endif %}
+                  <a class="pending-action-btn pending-action-secondary" href="/app/pending-items/{{ item.id }}/edit/">Editar</a>
+                  <details class="pending-actions-more">
+                    <summary class="pending-action-btn pending-action-secondary">Más</summary>
+                    <div class="pending-actions-more-body">
+                      {% if item.bank_request_id and item.bank_can_mark and item.bank_origin_kind == 'receipts' %}
+                      <form method="post" action="/app/pending-items/{{ item.id }}/bank-document-loaded/receipts/" class="inline inline-action pending-inline-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                        <button type="submit" class="pending-action-btn pending-action-primary">Marcar recibos</button>
+                      </form>
+                      {% endif %}
+                      <form method="post" action="/app/pending-items/{{ item.id }}/resolve/" class="inline inline-action pending-inline-form">
+                        {% csrf_token %}
+                        <button type="submit" class="pending-action-btn pending-action-secondary">Resolver</button>
+                      </form>
+                      <form method="post" action="/app/pending-items/{{ item.id }}/delete/" class="inline inline-action pending-inline-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="/app/pending-items/">
+                        <button type="submit" class="pending-action-btn pending-action-danger">Eliminar</button>
+                      </form>
+                    </div>
+                  </details>
+                </div>
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table></div>
+    {% else %}
+      <p class="pending-empty-inline">Sin pendientes abiertos.</p>
+    {% endif %}
+  </div>
+</div>
+
+<div
+  class="panel pending-panel{% if not resolved_items %} pending-panel-empty{% endif %}"
+  data-collapsible-id="pending-list-resolved"
+  {% if not resolved_items %}data-collapsible-default="collapsed"{% endif %}
+>
+  <div class="collapse-head collapse-head-compact">
+    <div class="collapse-title-wrap">
+      <button type="button" class="collapse-toggle-inline" data-collapse-toggle>
+        <span class="collapse-chevron">▾</span>
+        <span>Pendientes resueltos</span>
+      </button>
+      <span class="panel-count-badge{% if not resolved_items %} panel-count-badge-empty{% endif %}">{{ resolved_items|length }}</span>
+    </div>
+  </div>
+  <div class="collapse-body">
+    {% if resolved_items %}
+      <div class="table-wrap compact-table"><table>
+        <thead><tr><th>Cliente</th><th>Descripción</th><th>Prioridad</th><th>Resuelta</th><th>Origen</th><th>Acciones</th></tr></thead>
+        <tbody>
+        {% for item in resolved_items %}
+          <tr>
+            <td><a href="/app/clients/{{ item.client_id }}/">{{ item.client.name }}</a></td>
+            <td>{{ item.description }}</td>
+            <td><span class="status-badge {{ item.priority|lower }}">{{ item.get_priority_display }}</span></td>
+            <td>{{ item.resolved_at|date:"Y-m-d H:i"|default:"-" }}</td>
+            <td>
+              <div class="pending-origin-cell">
+                {% if item.bank_request_id %}
+                  <span class="status-badge info">{{ item.origin_label }}</span>
+                {% else %}
+                  <span class="muted">{{ item.origin_label }}</span>
+                {% endif %}
+              </div>
+            </td>
+            <td class="table-actions">
+              <div class="pending-actions-cell">
+                <div class="pending-actions-row">
+                  {% if item.bank_request_id and item.bank_request_url %}
+                    <a class="pending-action-btn pending-action-secondary" href="{{ item.bank_request_url }}">Ir a solicitud</a>
+                  {% endif %}
+                  <a class="pending-action-btn pending-action-secondary" href="/app/pending-items/{{ item.id }}/edit/">Editar</a>
+                  <details class="pending-actions-more">
+                    <summary class="pending-action-btn pending-action-secondary">Más</summary>
+                    <div class="pending-actions-more-body">
+                      <form method="post" action="/app/pending-items/{{ item.id }}/delete/" class="inline inline-action pending-inline-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="/app/pending-items/">
+                        <button type="submit" class="pending-action-btn pending-action-danger">Eliminar</button>
+                      </form>
+                    </div>
+                  </details>
+                </div>
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table></div>
+    {% else %}
+      <p class="pending-empty-inline">Sin pendientes resueltos.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

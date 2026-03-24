@@ -1,0 +1,32 @@
+<div class="notif-panel-head">
+  <h4>Notificaciones</h4>
+  <span class="status-badge {% if unread_count %}warning{% else %}info{% endif %}">
+    {{ unread_count }} sin leer
+  </span>
+</div>
+<div class="notif-panel-list">
+  {% for notification in notifications %}
+    {% if notification.target_url %}
+      <a href="{{ notification.target_url }}" class="notif-item notif-severity-{{ notification.severity|lower }}{% if not notification.is_read %} notif-item-unread{% endif %}">
+    {% else %}
+      <div class="notif-item notif-severity-{{ notification.severity|lower }}{% if not notification.is_read %} notif-item-unread{% endif %}">
+    {% endif %}
+      <div class="notif-item-main">
+        <div class="notif-item-top">
+          <strong>{{ notification.client.name|default:"General" }}</strong>
+          <small>{{ notification.created_at|date:"d/m H:i" }}</small>
+        </div>
+        <div class="notif-item-message">{{ notification.message }}</div>
+      </div>
+      <span class="status-badge notif-severity-pill notif-severity-{{ notification.severity|lower }}">
+        {{ notification.get_severity_display }}
+      </span>
+    {% if notification.target_url %}
+      </a>
+    {% else %}
+      </div>
+    {% endif %}
+  {% empty %}
+    <div class="empty-row">Sin notificaciones por ahora.</div>
+  {% endfor %}
+</div>

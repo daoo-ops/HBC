@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+{% load money_format %}
+{% block title %}Compromisos tributarios{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h2>Compromisos tributarios</h2>
+  <a class="btn" href="/app/tax-commitments/new/">Nuevo compromiso</a>
+</div>
+
+<div class="panel">
+  <form method="get" class="filters">
+    <input type="text" name="q" placeholder="Buscar cliente / ref / periodo" value="{{ q }}">
+    <select name="commitment_type">
+      <option value="">Todos los tipos</option>
+      {% for value,label in commitment_type_choices %}
+        <option value="{{ value }}" {% if commitment_type_filter == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <select name="status">
+      {% for value,label in status_choices %}
+        <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <select name="due_scope">
+      {% for value,label in due_scope_choices %}
+        <option value="{{ value }}" {% if due_scope == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    {% if not is_funcionario %}
+      <select name="responsible">
+        <option value="">Todos los responsables</option>
+        {% for user in responsible_choices %}
+          <option value="{{ user.id }}" {% if responsible_filter == user.id|stringformat:'s' %}selected{% endif %}>{{ user.username }}</option>
+        {% endfor %}
+      </select>
+      <select name="mine">
+        <option value="">Vista global</option>
+        <option value="1" {% if mine_filter == '1' %}selected{% endif %}>Mis clientes</option>
+      </select>
+    {% endif %}
+    <button class="btn">Filtrar</button>
+  </form>
+</div>
+
+<div class="panel">
+  <div class="table-wrap compact-table">
+    <table class="tax-commitments-table">
+      <thead>
+        <tr>
+          <th>Cliente</th>
+          <th>Tipo</th>
+          <th>Ref. N°</th>
+          <th>Periodo / referencia</th>
+          <th>Cuotas</th>
+          <th>Próximo vencimiento</th>
+          <th>Monto total</th>
+          <th>Estado general</th>
+          <th>Origen</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for group in groups %}
+          <tr class="tax-group-row">
+            <td><a href="/app/clients/{{ group.client_id }}/">{{ group.client.name }}</a></td>
+            <td>{{ group.type_display }}</td>
+            <td>{{ group.reference_number|default:"-" }}</td>
+            <td>{{ group.period_reference|default:"-" }}</td>
+            <td>
+              <div class="tax-quota-summary">
+                {% if group.has_installments %}
+                  <button
+                    type="button"
+                    class="tax-toggle-btn"
+                    data-tax-toggle="{{ group.dom_id }}"
+                    data-open="0"
+                    aria-expanded="false"
+                  >▸ {{ group.toggle_label }}</button>
+                {% endif %}
+                <span class="status-badge info">{{ group.cuota_context }}</span>
+              </div>
+            </td>
+            <td>
+              {% if group.next_due_date %}
+                <span class="status-badge {% if group.general_status == 'OVERDUE' %}overdue{% elif group.general_status == 'PENDING' or group.general_status == 'NOTIFIED' %}warning{% else %}paid{% endif %}">
+                  {{ group.next_due_date|date:"d/m/Y" }}
+                </span>
+              {% else %}
+                {% if group.general_status == 'PAID' or group.general_status == 'ARCHIVED' %}
+                  <span class="status-badge paid">Completado</span>
+                {% else %}
+                  <span class="muted">-</span>
+                {% endif %}
+              {% endif %}
+            </td>
+            <td>{{ group.total_amount|money:group.currency }} {{ group.currency }}</td>
+            <td><span class="status-badge {{ group.general_badge }}">{{ group.general_label }}</span></td>
+            <td><span class="status-badge info">{{ group.origin_display }}</span></td>
+            <td class="table-actions">
+              <div class="tax-group-actions">
+                <div class="pending-actions-row">
+                  {% if group.has_installments %}
+                    {% if group.group_can_archive_group %}
+                      <form method="post" action="/app/tax-commitments/group/{{ group.group_archive_group_id }}/archive/" class="inline inline-action pending-inline-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                        <button type="submit" class="pending-action-btn pending-action-secondary">Archivar grupo</button>
+                      </form>
+                    {% endif %}
+                    <a class="pending-action-btn pending-action-secondary" href="/app/tax-commitments/{{ group.group_action_item.id }}/edit/">Editar grupo</a>
+                  {% else %}
+                    {% if group.group_can_notify %}
+                      <form method="post" action="/app/tax-commitments/{{ group.group_notify_target.id }}/notify/" class="inline inline-action pending-inline-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                        <button type="submit" class="pending-action-btn pending-action-primary">Avisar</button>
+                      </form>
+                    {% endif %}
+                    {% if group.group_can_mark_paid %}
+                      <form method="post" action="/app/tax-commitments/{{ group.group_mark_paid_target.id }}/mark-paid/" class="inline inline-action pending-inline-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                        <button type="submit" class="pending-action-btn pending-action-secondary">Pagado</button>
+                      </form>
+                    {% endif %}
+                    {% if group.group_can_archive %}
+                      <form method="post" action="/app/tax-commitments/{{ group.group_archive_target.id }}/archive/" class="inline inline-action pending-inline-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                        <button type="submit" class="pending-action-btn pending-action-secondary">Archivar</button>
+                      </form>
+                    {% endif %}
+                    <a class="pending-action-btn pending-action-secondary" href="/app/tax-commitments/{{ group.group_action_item.id }}/edit/">Editar</a>
+                  {% endif %}
+                </div>
+              </div>
+            </td>
+          </tr>
+          {% if group.has_installments %}
+            <tr id="{{ group.dom_id }}" class="tax-group-details-row" hidden>
+              <td colspan="10">
+                <div class="tax-group-details-wrap">
+                  <div class="tax-group-details-head">
+                    <strong>Cuotas del compromiso</strong>
+                  </div>
+                  <div class="table-wrap compact-table tax-mini-table-wrap">
+                    <table class="tax-mini-table">
+                      <thead>
+                        <tr>
+                          <th>Cuota</th>
+                          <th>Vencimiento</th>
+                          <th>Monto</th>
+                          <th>Estado</th>
+                          <th>Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {% for item in group.items %}
+                          <tr>
+                            <td>{{ item.installment_label }}</td>
+                            <td>{{ item.due_date|date:"d/m/Y" }}</td>
+                            <td>{{ item.amount|money:item.currency }} {{ item.currency }}</td>
+                            <td><span class="status-badge {{ item.effective_badge }}">{{ item.effective_status_display }}</span></td>
+                            <td class="table-actions">
+                              <div class="tax-quota-actions">
+                                <div class="pending-actions-row">
+                                  {% if item.can_notify %}
+                                    <form method="post" action="/app/tax-commitments/{{ item.id }}/notify/" class="inline inline-action pending-inline-form">
+                                      {% csrf_token %}
+                                      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                      <button type="submit" class="pending-action-btn pending-action-primary">Avisar</button>
+                                    </form>
+                                  {% endif %}
+                                  {% if item.can_mark_paid %}
+                                    <form method="post" action="/app/tax-commitments/{{ item.id }}/mark-paid/" class="inline inline-action pending-inline-form">
+                                      {% csrf_token %}
+                                      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                      <button type="submit" class="pending-action-btn pending-action-secondary">Pagado</button>
+                                    </form>
+                                  {% endif %}
+                                  {% if item.can_archive %}
+                                    <form method="post" action="/app/tax-commitments/{{ item.id }}/archive/" class="inline inline-action pending-inline-form">
+                                      {% csrf_token %}
+                                      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                      <button type="submit" class="pending-action-btn pending-action-secondary">Archivar</button>
+                                    </form>
+                                  {% endif %}
+                                  <a class="pending-action-btn pending-action-secondary" href="/app/tax-commitments/{{ item.id }}/edit/">Editar</a>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        {% empty %}
+                          <tr><td colspan="5">Sin cuotas.</td></tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          {% endif %}
+        {% empty %}
+          <tr><td colspan="10">Sin compromisos tributarios registrados.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  const toggles = document.querySelectorAll('[data-tax-toggle]');
+  toggles.forEach((button) => {
+    button.addEventListener('click', function () {
+      const targetId = this.getAttribute('data-tax-toggle');
+      if (!targetId) return;
+      const row = document.getElementById(targetId);
+      if (!row) return;
+      const isOpen = this.getAttribute('data-open') === '1';
+      const nextOpen = !isOpen;
+      row.hidden = !nextOpen;
+      this.setAttribute('data-open', nextOpen ? '1' : '0');
+      this.setAttribute('aria-expanded', nextOpen ? 'true' : 'false');
+      const label = this.textContent.replace(/^▸|^▾/, '').trim();
+      this.textContent = (nextOpen ? '▾ ' : '▸ ') + label;
+    });
+  });
+})();
+</script>
+{% endblock %}

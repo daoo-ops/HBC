@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}Bitácora de pagos{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h2>Bitácora de pagos</h2>
+    <p class="muted">Bitácora de pagos recibidos.</p>
+  </div>
+  <a class="btn" href="/app/payment-logs/new/">Registrar recepción</a>
+</div>
+
+<div class="panel">
+  <form method="get" class="filters">
+    <input type="text" name="q" placeholder="Buscar cliente, quién pagó u observación" value="{{ q }}">
+    <div class="filter-field">
+      <label class="filter-label" for="payment-log-date-from">Desde</label>
+      <input id="payment-log-date-from" type="date" name="date_from" value="{{ date_from }}">
+    </div>
+    <div class="filter-field">
+      <label class="filter-label" for="payment-log-date-to">Hasta</label>
+      <input id="payment-log-date-to" type="date" name="date_to" value="{{ date_to }}">
+    </div>
+    <select name="scope">
+      <option value="active" {% if scope == 'active' %}selected{% endif %}>Activos</option>
+      <option value="archived" {% if scope == 'archived' %}selected{% endif %}>Archivados</option>
+      <option value="all" {% if scope == 'all' %}selected{% endif %}>Todos</option>
+    </select>
+    <select name="concept_type">
+      <option value="">Todos los conceptos</option>
+      {% for value,label in concept_choices %}
+        <option value="{{ value }}" {% if concept_filter == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <select name="payment_method">
+      <option value="">Todos los medios</option>
+      {% for value,label in method_choices %}
+        <option value="{{ value }}" {% if method_filter == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="btn">Filtrar</button>
+  </form>
+</div>
+
+<div class="table-wrap compact-table">
+  <table class="payment-log-table">
+    <thead>
+      <tr>
+        <th>Cliente</th>
+        <th>Fecha recepción</th>
+        <th>Quién pagó</th>
+        <th>Concepto</th>
+        <th>Medio</th>
+        <th>Observación</th>
+        <th>Registrado por</th>
+        <th>Estado</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+      <tr>
+        <td><a href="/app/clients/{{ item.client_id }}/">{{ item.client.name }}</a></td>
+        <td>{{ item.payment_date|date:"d/m/Y" }}</td>
+        <td>{{ item.paid_by }}</td>
+        <td>
+          {{ item.get_concept_type_display }}
+          {% if item.concept_type == 'OTROS' and item.concept_other %}
+            · {{ item.concept_other }}
+          {% endif %}
+        </td>
+        <td>
+          {{ item.get_payment_method_display }}
+          {% if item.payment_method == 'CHEQUE_TERCERO' and item.third_party_check_name %}
+            <small class="muted payment-log-meta">· {{ item.third_party_check_name }}</small>
+          {% endif %}
+        </td>
+        <td>{{ item.observation|default:"-"|truncatechars:70 }}</td>
+        <td>{{ item.recorded_by.username|default:"-" }}</td>
+        <td>
+          {% if item.is_archived %}
+            <span class="payment-log-state payment-log-state-archived">Archivado</span>
+          {% else %}
+            <span class="payment-log-state payment-log-state-active">Activo</span>
+          {% endif %}
+        </td>
+        <td class="table-actions payment-log-actions">
+          <a class="action-link payment-log-action" href="/app/payment-logs/{{ item.id }}/edit/">Editar</a>
+          {% if item.is_archived %}
+            <form method="post" action="/app/payment-logs/{{ item.id }}/unarchive/" class="inline inline-action">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{{ request.get_full_path }}">
+              <button type="submit" class="link-btn payment-log-action-btn">Reabrir</button>
+            </form>
+          {% else %}
+            <form method="post" action="/app/payment-logs/{{ item.id }}/archive/" class="inline inline-action">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{{ request.get_full_path }}">
+              <button type="submit" class="link-btn payment-log-action-btn">Archivar</button>
+            </form>
+          {% endif %}
+          {% if can_manage_all %}
+            <form method="post" action="/app/payment-logs/{{ item.id }}/delete/" class="inline inline-action">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{{ request.get_full_path }}">
+              <button
+                type="submit"
+                class="link-btn payment-log-action-btn payment-log-action-delete"
+                onclick="return confirm('¿Eliminar este registro de la bitácora? Esta acción no se puede deshacer.');"
+                title="Eliminar registro"
+                aria-label="Eliminar registro"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M7 6l1 14h8l1-14M10 10v7M14 10v7"/></svg>
+              </button>
+            </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="9">Sin registros de recepción de pagos.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,736 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h2>{{ title }}</h2>
+  <a class="btn btn-secondary" href="{{ back_url }}">Volver</a>
+</div>
+
+<div class="form-shell">
+  <div class="panel form-panel">
+    <form method="post" class="form-grid{% if enable_tax_commitment_helper %} tax-commitment-form{% endif %}{% if enable_client_form_helper %} client-form{% endif %}">
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+        <div class="message error">{{ form.non_field_errors }}</div>
+      {% endif %}
+
+      {% if enable_tax_commitment_helper %}
+        <section class="form-block full">
+          <div class="form-block-head">
+            <h3>Datos del compromiso</h3>
+          </div>
+          <div class="form-block-grid block-commitment-data">
+            {% with field=form.client %}
+              {% include "components/client_picker_field.html" with field=field only %}
+            {% endwith %}
+            {% with field=form.commitment_type %}
+            <div class="field-wrap field-primary" data-field-name="{{ field.name }}">
+              <label for="{{ field.id_for_label }}" data-field-label="{{ field.name }}">{{ field.label }}</label>
+              {{ field }}
+              {% if field.help_text %}<small class="muted">{{ field.help_text }}</small>{% endif %}
+              {% if field.errors %}<small class="error-text">{{ field.errors|join:", " }}</small>{% endif %}
+            </div>
+            {% endwith %}
+            {% with field=form.type_other %}
+            <div class="field-wrap" data-field-name="{{ field.name }}">
+              <label for="{{ field.id_for_label }}" data-field-label="{{ field.name }}">{{ field.label }}</label>
+              {{ field }}
+              {% if field.help_text %}<small class="muted">{{ field.help_text }}</small>{% endif %}
+              {% if field.errors %}<small class="error-text">{{ field.errors|join:", " }}</small>{% endif %}
+            </div>
+            {% endwith %}
+            {% with field=form.reference_number %}
+            <div class="field-wrap" data-field-name="{{ field.name }}">
+              <label for="{{ field.id_for_label }}" data-field-label="{{ field.name }}">{{ field.label }}</label>
+              {{ field }}
+              {% if field.help_text %}<small class="muted">{{ field.help_text }}</small>{% endif %}
+              {% if field.errors %}<small class="error-text">{{ field.errors|join:", " }}</small>{% endif %}
+            </div>
+            {% endwith %}
+            {% with field=form.period_reference %}
+            <div class="field-wrap" data-field-name="{{ field.name }}">
+              <label for="{{ field.id_for_label }}" data-field-label="{{ field.name }}">{{ field.label }}</label>
+              {{ field }}
+              {% if field.help_text %}<small class="muted">{{ field.help_text }}</small>{% endif %}
+              {% if field.errors %}<small class="error-text">{{ field.errors|join:", " }}</small>{% endif %}
+            </div>
+            {% endwith %}
+            {% with field=form.currency %}
+            <div class="field-wrap" data-field-name="{{ field.name }}">
+              <label for="{{ field.id_for_label }}" data-field-label="{{ field.name }}">{{ field.label }}</label>
+              {{ field }}
+              {% if field.help_text %}<small class="muted">{{ field.help_text }}</small>{% endif %}
+              {% if field.errors %}<small class="error-text">{{ field.errors|join:", " }}</small>{% endif %}
+            </div>
+            {% endwith %}
+            {% with field=form.notes %}
+            <div class="field-wrap full field-secondary" data-field-name="{{ field.name }}">
+              <label for="{{ field.id_for_label }}" data-field-label="{{ field.name }}">{{ field.label }}</label>
+              {{ field }}
+              {% if field.help_text %}<small class="muted">{{ field.help_text }}</small>{% endif %}
+              {% if field.errors %}<small class="error-text">{{ field.errors|join:", " }}</small>{% endif %}
+            </div>
+            {% endwith %}
+          </div>
+        </section>
+
+        <section class="form-block full">
+          <div class="form-block-head">
+            <h3>Configuración de cuotas</h3>
+          </div>
+          <div class="form-block-grid block-installment-config">
+            {% with field=form.installments_count %}
+            <div class="field-wrap quota-row-1" data-field-name="{{ field.name }}">
+              <label for="{{ field.id_for_label }}" data-field-label="{{ field.name }}">{{ field.label }}</label>
+              {{ field }}
+              {% if field.help_text %}<small class="muted">{{ field.help_text }}</small>{% endif %}
+              {% if field.errors %}<small class="error-text">{{ field.errors|join:", " }}</small>{% endif %}
+            </div>
+            {% endwith %}
+            {% with field=form.installment_mode %}
+            <div class="field-wrap quota-row-1" data-field-name="{{ field.name }}">
+              <label for="{{ field.id_for_label }}" data-field-label="{{ field.name }}">{{ field.label }}</label>
+              {{ field }}
+              {% if field.help_text %}<small class="muted">{{ field.help_text }}</small>{% endif %}
+              {% if field.errors %}<small class="error-text">{{ field.errors|join:", " }}</small>{% endif %}
+            </div>
+            {% endwith %}
+            {% with field=form.installment_date_mode %}
+            <div class="field-wrap quota-row-2" data-field-name="{{ field.name }}">
+              <label for="{{ field.id_for_label }}" data-field-label="{{ field.name }}">{{ field.label }}</label>
+              {{ field }}
+              {% if field.help_text %}<small class="muted">{{ field.help_text }}</small>{% endif %}
+              {% if field.errors %}<small class="error-text">{{ field.errors|join:", " }}</small>{% endif %}
+            </div>
+            {% endwith %}
+            {% with field=form.amount %}
+            <div class="field-wrap quota-row-2" data-field-name="{{ field.name }}" id="tax-total-amount-wrap">
+              <label for="{{ field.id_for_label }}" data-field-label="{{ field.name }}">{{ field.label }}</label>
+              {{ field }}
+              {% if field.help_text %}<small class="muted" data-field-help="{{ field.name }}">{{ field.help_text }}</small>{% endif %}
+              {% if field.errors %}<small class="error-text">{{ field.errors|join:", " }}</small>{% endif %}
+            </div>
+            {% endwith %}
+            {% with field=form.due_date %}
+            <div class="field-wrap full quota-row-3 quota-row-anchor" data-field-name="{{ field.name }}">
+              <label for="{{ field.id_for_label }}" data-field-label="{{ field.name }}">{{ field.label }}</label>
+              {{ field }}
+              <small class="muted" data-field-help="{{ field.name }}"{% if not field.help_text %} style="display:none;"{% endif %}>{{ field.help_text }}</small>
+              {% if field.errors %}<small class="error-text">{{ field.errors|join:", " }}</small>{% endif %}
+            </div>
+            {% endwith %}
+          </div>
+        </section>
+
+        <section class="form-block full" id="tax-manual-amounts-wrap" style="display:none;">
+          <div class="form-block-head">
+            <h3>Detalle por cuota</h3>
+          </div>
+          <div id="tax-manual-amounts-list" class="tax-manual-amounts-list"></div>
+          <small class="muted tax-helper-note">
+            Use Tab para recorrer cuota, monto y fecha.
+          </small>
+        </section>
+      {% elif enable_client_form_helper %}
+        <section class="form-block full">
+          <div class="form-block-head">
+            <h3>Datos básicos</h3>
+          </div>
+          <div class="form-block-grid client-basic-grid">
+            {% if form.name %}
+            {% with field=form.name %}
+            <div class="field-wrap field-primary" data-field-name="{{ field.name }}">
+              <label for="{{ field.id_for_label }}" data-field-label="{{ field.name }}">{{ field.label }}</label>
+              {{ field }}
+              {% if field.help_text %}<small class="muted">{{ field.help_text }}</small>{% endif %}
+              {% if field.errors %}<small class="error-text">{{ field.errors|join:", " }}</small>{% endif %}
+            </div>
+            {% endwith %}
+            {% endif %}
+
+            <div class="full ruc-dv-row">
+              {% if form.ruc %}
+              {% with field=form.ruc %}
+              <div class="field-wrap field-primary" data-field-name="{{ field.name }}">
+                <label for="{{ field.id_for_label }}" data-field-label="{{ field.name }}">{{ field.label }}</label>
+                {{ field }}
+                {% if field.help_text %}<small class="muted">{{ field.help_text }}</small>{% endif %}
+                {% if field.errors %}<small class="error-text">{{ field.errors|join:", " }}</small>{% endif %}
+              </div>
+              {% endwith %}
+              {% endif %}
+
+              {% if form.ruc_dv %}
+              {% with field=form.ruc_dv %}
+              <div class="field-wrap field-dv" data-field-name="{{ field.name }}">
+                <label for="{{ field.id_for_label }}" data-field-label="{{ field.name }}">{{ field.label }}</label>
+                {{ field }}
+                {% if field.help_text %}<small class="muted">{{ field.help_text }}</small>{% endif %}
+                {% if field.errors %}<small class="error-text">{{ field.errors|join:", " }}</small>{% endif %}
+              </div>
+              {% endwith %}
+              {% endif %}
+            </div>
+
+            {% if form.responsible %}
+            {% with field=form.responsible %}
+            <div class="field-wrap" data-field-name="{{ field.name }}">
+              <label for="{{ field.id_for_label }}" data-field-label="{{ field.name }}">{{ field.label }}</label>
+              {{ field }}
+              {% if field.help_text %}<small class="muted">{{ field.help_text }}</small>{% endif %}
+              {% if field.errors %}<small class="error-text">{{ field.errors|join:", " }}</small>{% endif %}
+            </div>
+            {% endwith %}
+            {% endif %}
+
+            {% if form.phone %}
+            {% with field=form.phone %}
+            <div class="field-wrap" data-field-name="{{ field.name }}">
+              <label for="{{ field.id_for_label }}" data-field-label="{{ field.name }}">{{ field.label }}</label>
+              {{ field }}
+              {% if field.help_text %}<small class="muted">{{ field.help_text }}</small>{% endif %}
+              {% if field.errors %}<small class="error-text">{{ field.errors|join:", " }}</small>{% endif %}
+            </div>
+            {% endwith %}
+            {% endif %}
+
+            {% if form.address %}
+            {% with field=form.address %}
+            <div class="field-wrap full" data-field-name="{{ field.name }}">
+              <label for="{{ field.id_for_label }}" data-field-label="{{ field.name }}">{{ field.label }}</label>
+              {{ field }}
+              {% if field.help_text %}<small class="muted">{{ field.help_text }}</small>{% endif %}
+              {% if field.errors %}<small class="error-text">{{ field.errors|join:", " }}</small>{% endif %}
+            </div>
+            {% endwith %}
+            {% endif %}
+
+            {% if form.zone %}
+            {% with field=form.zone %}
+            <div class="field-wrap" data-field-name="{{ field.name }}">
+              <label for="{{ field.id_for_label }}" data-field-label="{{ field.name }}">{{ field.label }}</label>
+              {{ field }}
+              {% if field.help_text %}<small class="muted">{{ field.help_text }}</small>{% endif %}
+              {% if field.errors %}<small class="error-text">{{ field.errors|join:", " }}</small>{% endif %}
+            </div>
+            {% endwith %}
+            {% endif %}
+          </div>
+        </section>
+
+        <section class="form-block full">
+          <div class="form-block-head">
+            <h3>Datos fiscales</h3>
+          </div>
+          <div class="form-block-grid client-fiscal-grid">
+            {% if form.presentation_type %}
+            {% with field=form.presentation_type %}
+            <div class="field-wrap" data-field-name="{{ field.name }}">
+              <label for="{{ field.id_for_label }}" data-field-label="{{ field.name }}">{{ field.label }}</label>
+              {{ field }}
+              {% if field.help_text %}<small class="muted">{{ field.help_text }}</small>{% endif %}
+              {% if field.errors %}<small class="error-text">{{ field.errors|join:", " }}</small>{% endif %}
+            </div>
+            {% endwith %}
+            {% endif %}
+
+            {% if form.status %}
+            {% with field=form.status %}
+            <div class="field-wrap" data-field-name="{{ field.name }}">
+              <label for="{{ field.id_for_label }}" data-field-label="{{ field.name }}">{{ field.label }}</label>
+              {{ field }}
+              {% if field.help_text %}<small class="muted">{{ field.help_text }}</small>{% endif %}
+              {% if field.errors %}<small class="error-text">{{ field.errors|join:", " }}</small>{% endif %}
+            </div>
+            {% endwith %}
+            {% endif %}
+
+            {% if form.due_date %}
+            {% with field=form.due_date %}
+            <div class="field-wrap" data-field-name="{{ field.name }}">
+              <label for="{{ field.id_for_label }}" data-field-label="{{ field.name }}">{{ field.label }}</label>
+              {{ field }}
+              {% if field.help_text %}<small class="muted">{{ field.help_text }}</small>{% endif %}
+              {% if field.errors %}<small class="error-text">{{ field.errors|join:", " }}</small>{% endif %}
+            </div>
+            {% endwith %}
+            {% endif %}
+
+            {% if form.submission_date %}
+            {% with field=form.submission_date %}
+            <div class="field-wrap" data-field-name="{{ field.name }}">
+              <label for="{{ field.id_for_label }}" data-field-label="{{ field.name }}">{{ field.label }}</label>
+              {{ field }}
+              {% if field.help_text %}<small class="muted">{{ field.help_text }}</small>{% endif %}
+              {% if field.errors %}<small class="error-text">{{ field.errors|join:", " }}</small>{% endif %}
+            </div>
+            {% endwith %}
+            {% endif %}
+
+            {% if form.invoice_period_status %}
+            {% with field=form.invoice_period_status %}
+            <div class="field-wrap full" data-field-name="{{ field.name }}">
+              <label for="{{ field.id_for_label }}" data-field-label="{{ field.name }}">{{ field.label }}</label>
+              {{ field }}
+              {% if field.help_text %}<small class="muted">{{ field.help_text }}</small>{% endif %}
+              {% if field.errors %}<small class="error-text">{{ field.errors|join:", " }}</small>{% endif %}
+            </div>
+            {% endwith %}
+            {% endif %}
+          </div>
+        </section>
+
+        <section class="form-block full">
+          <div class="form-block-head">
+            <h3>Observaciones operativas</h3>
+          </div>
+          <div class="form-block-grid client-notes-grid">
+            {% if form.pending_notes %}
+            {% with field=form.pending_notes %}
+            <div class="field-wrap full" data-field-name="{{ field.name }}">
+              <label for="{{ field.id_for_label }}" data-field-label="{{ field.name }}">{{ field.label }}</label>
+              {{ field }}
+              {% if field.help_text %}<small class="muted">{{ field.help_text }}</small>{% endif %}
+              {% if field.errors %}<small class="error-text">{{ field.errors|join:", " }}</small>{% endif %}
+            </div>
+            {% endwith %}
+            {% endif %}
+
+            {% if form.observations %}
+            {% with field=form.observations %}
+            <div class="field-wrap full field-secondary" data-field-name="{{ field.name }}">
+              <label for="{{ field.id_for_label }}" data-field-label="{{ field.name }}">{{ field.label }}</label>
+              {{ field }}
+              {% if field.help_text %}<small class="muted">{{ field.help_text }}</small>{% endif %}
+              {% if field.errors %}<small class="error-text">{{ field.errors|join:", " }}</small>{% endif %}
+            </div>
+            {% endwith %}
+            {% endif %}
+          </div>
+        </section>
+
+        {% if form.monthly_amount_pyg or form.monthly_amount_usd or form.paid or form.debt_amount or form.contract_until %}
+        <section class="form-block full legacy-block">
+          <div class="form-block-head">
+            <h3>Valores base / legacy</h3>
+          </div>
+          <div class="form-block-grid client-legacy-grid">
+            {% if form.monthly_amount_pyg %}
+            {% with field=form.monthly_amount_pyg %}
+            <div class="field-wrap" data-field-name="{{ field.name }}">
+              <label for="{{ field.id_for_label }}" data-field-label="{{ field.name }}">{{ field.label }}</label>
+              {{ field }}
+              {% if field.help_text %}<small class="muted">{{ field.help_text }}</small>{% endif %}
+              {% if field.errors %}<small class="error-text">{{ field.errors|join:", " }}</small>{% endif %}
+            </div>
+            {% endwith %}
+            {% endif %}
+
+            {% if form.monthly_amount_usd %}
+            {% with field=form.monthly_amount_usd %}
+            <div class="field-wrap" data-field-name="{{ field.name }}">
+              <label for="{{ field.id_for_label }}" data-field-label="{{ field.name }}">{{ field.label }}</label>
+              {{ field }}
+              {% if field.help_text %}<small class="muted">{{ field.help_text }}</small>{% endif %}
+              {% if field.errors %}<small class="error-text">{{ field.errors|join:", " }}</small>{% endif %}
+            </div>
+            {% endwith %}
+            {% endif %}
+
+            {% if form.paid %}
+            {% with field=form.paid %}
+            <div class="field-wrap" data-field-name="{{ field.name }}">
+              <label for="{{ field.id_for_label }}" data-field-label="{{ field.name }}">{{ field.label }}</label>
+              {{ field }}
+              {% if field.help_text %}<small class="muted">{{ field.help_text }}</small>{% endif %}
+              {% if field.errors %}<small class="error-text">{{ field.errors|join:", " }}</small>{% endif %}
+            </div>
+            {% endwith %}
+            {% endif %}
+
+            {% if form.debt_amount %}
+            {% with field=form.debt_amount %}
+            <div class="field-wrap" data-field-name="{{ field.name }}">
+              <label for="{{ field.id_for_label }}" data-field-label="{{ field.name }}">{{ field.label }}</label>
+              {{ field }}
+              {% if field.help_text %}<small class="muted">{{ field.help_text }}</small>{% endif %}
+              {% if field.errors %}<small class="error-text">{{ field.errors|join:", " }}</small>{% endif %}
+            </div>
+            {% endwith %}
+            {% endif %}
+
+            {% if form.contract_until %}
+            {% with field=form.contract_until %}
+            <div class="field-wrap" data-field-name="{{ field.name }}">
+              <label for="{{ field.id_for_label }}" data-field-label="{{ field.name }}">{{ field.label }}</label>
+              {{ field }}
+              {% if field.help_text %}<small class="muted">{{ field.help_text }}</small>{% endif %}
+              {% if field.errors %}<small class="error-text">{{ field.errors|join:", " }}</small>{% endif %}
+            </div>
+            {% endwith %}
+            {% endif %}
+          </div>
+        </section>
+        {% endif %}
+
+        {% if form.obligations %}
+        <section class="form-block full">
+          <div class="form-block-head">
+            <h3>Obligaciones fiscales</h3>
+          </div>
+          {% with field=form.obligations %}
+          <div class="field-wrap full obligations-field" data-field-name="{{ field.name }}">
+            {{ field }}
+            {% if field.help_text %}<small class="muted">{{ field.help_text }}</small>{% endif %}
+            {% if field.errors %}<small class="error-text">{{ field.errors|join:", " }}</small>{% endif %}
+          </div>
+          {% endwith %}
+        </section>
+        {% endif %}
+      {% else %}
+        {% for field in form %}
+          {% if field.name == "client" %}
+            {% include "components/client_picker_field.html" with field=field only %}
+          {% else %}
+          <div
+            class="field-wrap{% if field.field.widget.input_type == 'textarea' or field.field.widget.input_type == 'checkbox' %} full{% endif %}"
+            data-field-name="{{ field.name }}"
+          >
+            <label for="{{ field.id_for_label }}" data-field-label="{{ field.name }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}
+              <small class="muted">{{ field.help_text }}</small>
+            {% endif %}
+            {% if field.errors %}
+              <small class="error-text">{{ field.errors|join:", " }}</small>
+            {% endif %}
+          </div>
+          {% endif %}
+        {% endfor %}
+      {% endif %}
+
+      <div class="full actions form-actions-bar">
+        <button type="submit" class="btn">Guardar</button>
+        <a class="btn btn-secondary" href="{{ back_url }}">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if enable_ruc_dv_helper %}
+<script>
+(function () {
+  const rucInput = document.getElementById('id_ruc');
+  const dvInput = document.getElementById('id_ruc_dv');
+  if (!rucInput || !dvInput) return;
+
+  let manuallyEdited = false;
+  let autoFilled = false;
+
+  function normalizeBase(raw) {
+    const clean = String(raw || '').replace(/[^0-9-]/g, '');
+    if (!clean) return '';
+    return clean.split('-')[0].replace(/[^0-9]/g, '');
+  }
+
+  function calculateDv(base) {
+    if (!base || !/^[0-9]+$/.test(base)) return '';
+    let total = 0;
+    let weight = 2;
+    for (let i = base.length - 1; i >= 0; i--) {
+      total += Number(base[i]) * weight;
+      weight += 1;
+      if (weight > 11) weight = 2;
+    }
+    const mod = total % 11;
+    const verifier = 11 - mod;
+    if (verifier === 11) return '0';
+    if (verifier === 10) return '';
+    return String(verifier);
+  }
+
+  function suggestDv() {
+    if (manuallyEdited && !autoFilled) return;
+    const base = normalizeBase(rucInput.value);
+    const suggested = calculateDv(base);
+    if (!suggested) return;
+    if (!dvInput.value || autoFilled) {
+      dvInput.value = suggested;
+      autoFilled = true;
+    }
+  }
+
+  dvInput.addEventListener('input', function () {
+    manuallyEdited = true;
+    autoFilled = false;
+  });
+
+  rucInput.addEventListener('input', suggestDv);
+  suggestDv();
+})();
+</script>
+{% endif %}
+{% if enable_tax_commitment_helper %}
+{{ tax_manual_amount_values|json_script:"tax-manual-amount-values" }}
+{{ tax_manual_due_values|json_script:"tax-manual-due-values" }}
+<script>
+(function () {
+  const modeSelect = document.getElementById('id_installment_mode');
+  const dateModeSelect = document.getElementById('id_installment_date_mode');
+  const countInput = document.getElementById('id_installments_count');
+  const typeSelect = document.getElementById('id_commitment_type');
+  const currencySelect = document.getElementById('id_currency');
+  const dueDateInput = document.getElementById('id_due_date');
+  const dueDateWrap = document.querySelector('[data-field-name="due_date"]');
+  const dueDateLabel = document.querySelector('[data-field-label="due_date"]');
+  const dueDateHelp = dueDateWrap ? dueDateWrap.querySelector('[data-field-help="due_date"]') : null;
+  const amountWrap = document.getElementById('tax-total-amount-wrap');
+  const amountLabel = amountWrap ? amountWrap.querySelector('[data-field-label="amount"]') : null;
+  const amountHelp = amountWrap ? amountWrap.querySelector('[data-field-help="amount"]') : null;
+  const totalAmountInput = document.getElementById('id_amount');
+  const wrap = document.getElementById('tax-manual-amounts-wrap');
+  const list = document.getElementById('tax-manual-amounts-list');
+  if (!modeSelect || !countInput || !wrap || !list || !dateModeSelect) return;
+
+  const amountValuesNode = document.getElementById('tax-manual-amount-values');
+  const dueValuesNode = document.getElementById('tax-manual-due-values');
+  let existingAmountValues = [];
+  let existingDueValues = [];
+  if (amountValuesNode) {
+    try {
+      existingAmountValues = JSON.parse(amountValuesNode.textContent || '[]') || [];
+    } catch (error) {
+      existingAmountValues = [];
+    }
+  }
+  if (dueValuesNode) {
+    try {
+      existingDueValues = JSON.parse(dueValuesNode.textContent || '[]') || [];
+    } catch (error) {
+      existingDueValues = [];
+    }
+  }
+
+  let modeTouched = false;
+  modeSelect.addEventListener('change', function () {
+    modeTouched = true;
+  });
+
+  function collectCurrentValues() {
+    existingAmountValues = Array.from(list.querySelectorAll('input[name="manual_amounts"]'))
+      .map((node) => String(node.value || '').trim());
+    existingDueValues = Array.from(list.querySelectorAll('input[name="manual_due_dates"]'))
+      .map((node) => String(node.value || '').trim());
+  }
+
+  function parsedCount() {
+    const raw = parseInt(countInput.value || '1', 10);
+    if (!raw || raw < 1) return 1;
+    return raw;
+  }
+
+  function syncDueDatePresentation() {
+    if (!dueDateWrap || !dueDateLabel) return;
+    const count = parsedCount();
+    const customizeDates = dateModeSelect.value === 'MANUAL';
+    const isInstallmentFlow = count > 1;
+
+    if (isInstallmentFlow && customizeDates) {
+      dueDateWrap.style.display = 'none';
+      return;
+    }
+
+    dueDateWrap.style.display = '';
+    dueDateLabel.textContent = isInstallmentFlow ? 'Primer vencimiento' : 'Vencimiento';
+    if (dueDateHelp) {
+      const helperText = isInstallmentFlow
+        ? 'Las siguientes cuotas se generan mensualmente.'
+        : '';
+      dueDateHelp.textContent = helperText;
+      dueDateHelp.style.display = helperText ? '' : 'none';
+    }
+  }
+
+  function syncAmountPresentation() {
+    if (!amountWrap || !amountLabel || !amountHelp) return;
+    const count = parsedCount();
+    const isManual = modeSelect.value === 'MANUAL';
+    const isInstallmentFlow = count > 1;
+
+    if (isInstallmentFlow && isManual) {
+      amountWrap.classList.add('is-secondary');
+      amountLabel.textContent = 'Monto total (control opcional)';
+      amountHelp.textContent = 'En modo manual, prevalecen los montos por cuota cargados abajo.';
+      return;
+    }
+
+    amountWrap.classList.remove('is-secondary');
+    amountLabel.textContent = (count > 1) ? 'Monto total' : 'Monto';
+    amountHelp.textContent = 'Monto total en AUTOMÁTICO o monto único cuando no hay cuotas.';
+  }
+
+  function labelByCurrency() {
+    if (!currencySelect) return '';
+    return currencySelect.value === 'USD' ? 'USD' : 'PYG';
+  }
+
+  function toFixedAmount(value, currency) {
+    if (currency === 'USD') return value.toFixed(2);
+    const units = Math.round(value);
+    return String(units).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  }
+
+  function splitAutoAmounts() {
+    const count = parsedCount();
+    const currency = labelByCurrency();
+    const raw = String((totalAmountInput && totalAmountInput.value) || '').replace(',', '.');
+    const total = Number(raw);
+    if (!Number.isFinite(total) || total <= 0 || count <= 0) return Array.from({ length: count }, () => '');
+
+    if (currency === 'USD') {
+      const centsTotal = Math.round(total * 100);
+      const base = Math.floor(centsTotal / count);
+      const rest = centsTotal - base * count;
+      const values = Array.from({ length: count }, () => base / 100);
+      values[count - 1] = (base + rest) / 100;
+      return values.map((v) => toFixedAmount(v, currency));
+    }
+
+    const unitsTotal = Math.round(total);
+    const baseUnits = Math.floor(unitsTotal / count);
+    const restUnits = unitsTotal - baseUnits * count;
+    const values = Array.from({ length: count }, () => baseUnits);
+    values[count - 1] = baseUnits + restUnits;
+    return values.map((v) => toFixedAmount(v, currency));
+  }
+
+  function addMonths(baseIso, offset) {
+    if (!baseIso) return '';
+    const date = new Date(baseIso + 'T00:00:00');
+    if (Number.isNaN(date.getTime())) return '';
+    const day = date.getDate();
+    date.setMonth(date.getMonth() + offset, 1);
+    const month = date.getMonth();
+    date.setDate(day);
+    if (date.getMonth() !== month) {
+      date.setDate(0);
+    }
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + d;
+  }
+
+  function renderInstallmentRows() {
+    collectCurrentValues();
+    syncDueDatePresentation();
+    syncAmountPresentation();
+    const isManual = modeSelect.value === 'MANUAL';
+    const customizeDates = dateModeSelect.value === 'MANUAL';
+    const count = parsedCount();
+    const showDetail = count > 1 && (isManual || customizeDates);
+    if (!showDetail) {
+      wrap.style.display = 'none';
+      list.innerHTML = '';
+      return;
+    }
+    wrap.style.display = '';
+    list.innerHTML = '';
+    const suffix = labelByCurrency();
+    const autoAmounts = splitAutoAmounts();
+    const baseDue = (dueDateInput && dueDateInput.value) ? dueDateInput.value : '';
+
+    const header = document.createElement('div');
+    header.className = customizeDates ? 'tax-manual-amount-header tax-manual-amount-header-with-date' : 'tax-manual-amount-header';
+    header.innerHTML = customizeDates
+      ? '<span>Cuota</span><span>Monto</span><span>Fecha</span>'
+      : '<span>Cuota</span><span>Monto</span>';
+    list.appendChild(header);
+
+    for (let i = 1; i <= count; i++) {
+      const row = document.createElement('div');
+      row.className = customizeDates ? 'tax-manual-amount-row tax-manual-amount-row-with-date' : 'tax-manual-amount-row';
+
+      const quotaLabel = document.createElement('div');
+      quotaLabel.className = 'tax-manual-cell tax-manual-cell-label';
+      quotaLabel.textContent = 'Cuota ' + i;
+      row.appendChild(quotaLabel);
+
+      const amountCell = document.createElement('div');
+      amountCell.className = 'tax-manual-cell';
+      if (isManual) {
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.step = '0.01';
+        input.min = '0';
+        input.name = 'manual_amounts';
+        input.id = 'id_manual_amount_' + i;
+        input.placeholder = 'Monto cuota ' + i;
+        if (existingAmountValues[i - 1]) {
+          input.value = existingAmountValues[i - 1];
+        }
+        amountCell.appendChild(input);
+      } else {
+        const autoValue = autoAmounts[i - 1] || '-';
+        const preview = document.createElement('span');
+        preview.className = 'status-badge info';
+        preview.textContent = autoValue + (autoValue !== '-' ? ' ' + suffix : '');
+        amountCell.appendChild(preview);
+      }
+      row.appendChild(amountCell);
+
+      if (customizeDates) {
+        const dateCell = document.createElement('div');
+        dateCell.className = 'tax-manual-cell';
+        const dateInput = document.createElement('input');
+        dateInput.type = 'date';
+        dateInput.name = 'manual_due_dates';
+        dateInput.id = 'id_manual_due_' + i;
+        if (existingDueValues[i - 1]) {
+          dateInput.value = existingDueValues[i - 1];
+        } else {
+          dateInput.value = addMonths(baseDue, i - 1);
+        }
+        dateCell.appendChild(dateInput);
+        row.appendChild(dateCell);
+      }
+      list.appendChild(row);
+    }
+  }
+
+  function applyFacilidadDefault() {
+    if (!typeSelect || modeTouched) return;
+    if (typeSelect.value === 'FACILIDAD') {
+      modeSelect.value = 'MANUAL';
+    } else if (!modeSelect.value) {
+      modeSelect.value = 'AUTO';
+    }
+  }
+
+  if (typeSelect) {
+    typeSelect.addEventListener('change', function () {
+      applyFacilidadDefault();
+      renderInstallmentRows();
+    });
+  }
+  countInput.addEventListener('input', renderInstallmentRows);
+  modeSelect.addEventListener('change', renderInstallmentRows);
+  dateModeSelect.addEventListener('change', renderInstallmentRows);
+  if (dueDateInput) {
+    dueDateInput.addEventListener('input', renderInstallmentRows);
+  }
+  if (totalAmountInput) {
+    totalAmountInput.addEventListener('input', renderInstallmentRows);
+  }
+  if (currencySelect) {
+    currencySelect.addEventListener('change', renderInstallmentRows);
+  }
+
+  applyFacilidadDefault();
+  renderInstallmentRows();
+})();
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% load money_format %}
+{% block title %}Cobros{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h2>Cobros y pagos</h2>
+    <p class="muted">Módulo legacy (referencia operativa complementaria).</p>
+  </div>
+  <a class="btn" href="/app/charges/new/">Registrar cobro</a>
+</div>
+
+<div class="cards one-line">
+  <article class="card compact">
+    <h3>Deuda total pendiente</h3>
+    <p>{{ debt_total|money:"PYG" }}</p>
+  </article>
+</div>
+
+<div class="cards">
+  <article class="card compact">
+    <h3>Pendientes</h3>
+    <p>{{ pending_summary.count }}</p>
+    <small>{{ pending_summary.amount|money:"PYG" }}</small>
+  </article>
+  <article class="card compact">
+    <h3>Pagados</h3>
+    <p>{{ paid_summary.count }}</p>
+    <small>{{ paid_summary.amount|money:"PYG" }}</small>
+  </article>
+  <article class="card compact">
+    <h3>Total registros</h3>
+    <p>{{ items|length }}</p>
+  </article>
+</div>
+
+<div class="cards">
+  {% for key,data in summary_by_type.items %}
+  <article class="card compact">
+    <h3>{{ data.label }}</h3>
+    <small>Pendientes: {{ data.pending_count }} | {{ data.pending_amount|money:"PYG" }}</small>
+    <small>Pagados: {{ data.paid_count }} | {{ data.paid_amount|money:"PYG" }}</small>
+  </article>
+  {% endfor %}
+</div>
+
+<div class="panel">
+  <form method="get" class="filters">
+    <input type="text" name="q" placeholder="Buscar cliente" value="{{ q }}">
+    <select name="status">
+      <option value="">Todos los estados</option>
+      {% for value,label in status_choices %}
+        <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <select name="payment_type">
+      <option value="">Todos los tipos</option>
+      {% for value,label in payment_type_choices %}
+        <option value="{{ value }}" {% if payment_type_filter == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <button class="btn">Filtrar</button>
+  </form>
+</div>
+<div class="table-wrap"><table>
+<thead><tr><th>Cliente</th><th>Periodo</th><th>Tipo</th><th>Monto</th><th>Deuda</th><th>Estado</th><th>Acciones</th></tr></thead>
+<tbody>
+{% for item in items %}
+<tr>
+<td><a href="/app/clients/{{ item.client_id }}/">{{ item.client.name }}</a></td>
+<td>{{ item.period_month }}</td>
+<td>
+  {% if item.payment_type == 'HONORARIOS' %}
+    <span class="status-badge type-honorarios">Honorarios</span>
+  {% elif item.payment_type == 'IMPUESTOS' %}
+    <span class="status-badge type-impuestos">Impuestos</span>
+  {% else %}
+    <span class="status-badge type-otros">Otros</span>
+  {% endif %}
+</td>
+<td>{{ item.amount|money:item.currency }} {{ item.currency }}</td>
+<td>{{ item.debt_amount|money:item.currency }}</td>
+<td>
+  {% if item.status == 'PAID' %}
+    <span class="status-badge paid">Pagado</span>
+  {% else %}
+    <span class="status-badge pending">Pendiente</span>
+  {% endif %}
+</td>
+<td class="table-actions"><a class="action-link" href="/app/charges/{{ item.id }}/edit/">Editar</a></td>
+</tr>
+{% empty %}<tr><td colspan="7">Sin registros.</td></tr>{% endfor %}
+</tbody>
+</table></div>
+{% endblock %}

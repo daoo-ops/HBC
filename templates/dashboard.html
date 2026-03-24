@@ -1,0 +1,543 @@
+{% extends "base.html" %}
+{% load money_format %}
+{% block title %}Inicio | HBC{% endblock %}
+{% block content %}
+<div class="page-head page-head-dashboard">
+  <div>
+    <h1 class="ui-title-page">Inicio operativo</h1>
+    <p class="muted">Seguimiento del trabajo real del dia, con foco en gestion y urgencias.</p>
+  </div>
+  <div class="actions-inline dashboard-head-actions">
+    <a class="btn btn-secondary" href="/app/clients/">Clientes</a>
+    <a class="btn btn-secondary" href="/app/pending-items/">Pendientes</a>
+    <a class="btn btn-secondary" href="/app/submissions/">Obligaciones fiscales</a>
+    <a class="btn btn-secondary" href="/app/banks/">Bancos y recibos</a>
+  </div>
+</div>
+
+<div class="cards kpi-cards kpi-4 dashboard-kpi-grid">
+  <article class="card kpi kpi-today has-priority-bar priority-critical{% if due_today_count %} kpi-has-alert{% endif %}">
+    <h3 class="kpi-label">Vence hoy</h3>
+    <p class="kpi-value">{{ due_today_count }}</p>
+  </article>
+  <article class="card kpi kpi-urgent has-priority-bar priority-critical{% if urgent_count %} kpi-has-alert{% endif %}">
+    <h3 class="kpi-label">Pendientes urgentes</h3>
+    <p class="kpi-value">{{ urgent_count }}</p>
+  </article>
+  <article class="card kpi kpi-week has-priority-bar priority-week{% if due_week_count %} kpi-has-alert{% endif %}">
+    <h3 class="kpi-label">Esta semana</h3>
+    <p class="kpi-value">{{ due_week_count }}</p>
+  </article>
+  <article class="card kpi kpi-overdue has-priority-bar priority-overdue{% if overdue_count %} kpi-has-alert{% endif %}">
+    <h3 class="kpi-label">Atrasados</h3>
+    <p class="kpi-value">{{ overdue_count }}</p>
+  </article>
+</div>
+
+<section class="dashboard-zone dashboard-zone-work">
+  <div class="dashboard-zone-head">
+    <h2 class="dashboard-zone-title">Trabajo prioritario</h2>
+    <span class="dashboard-zone-subtitle">Lo que conviene mover primero en la oficina</span>
+  </div>
+
+  <section class="dashboard-work-layout">
+    <div class="dashboard-work-main">
+      <div
+        class="panel dashboard-panel has-priority-bar priority-critical{% if not due_today_items %} dashboard-panel-empty{% else %} panel-has-alert{% endif %}"
+        {% if due_today_items %}data-collapsible-id="dashboard-due-today"{% endif %}
+      >
+        <div class="collapse-head collapse-head-compact">
+          <h3 class="ui-title-panel collapse-title-wrap">
+            {% if due_today_items %}
+              <button type="button" class="collapse-toggle-inline" data-collapse-toggle>
+                <span class="collapse-chevron" aria-hidden="true">▸</span>
+                <span>Obligaciones que vencen hoy</span>
+              </button>
+            {% else %}
+              <span class="collapse-static-title">Obligaciones que vencen hoy</span>
+            {% endif %}
+            {% with count=due_today_items|length %}
+              {% if count %}
+                <span class="panel-count-badge">{{ count }}</span>
+              {% endif %}
+            {% endwith %}
+          </h3>
+          <div class="collapse-head-actions">
+            <a href="/app/submissions/?scope=main">Ver flujo</a>
+          </div>
+        </div>
+        {% if due_today_items %}
+        <div class="collapse-body">
+          <div class="table-wrap compact-table">
+            <table>
+              <thead><tr><th>Cliente</th><th>Obligación</th><th>Período</th><th>Vencimiento</th><th>Acciones</th></tr></thead>
+              <tbody>
+                {% for item in due_today_items %}
+                <tr>
+                  <td><a href="/app/clients/{{ item.client_id }}/">{{ item.client.name }}</a></td>
+                  <td>{{ item.obligation_name_display }}</td>
+                  <td>{{ item.period_display }}</td>
+                  <td><span class="status-badge urgent">{{ item.due_date|default:"-" }}</span></td>
+                  <td class="table-actions">
+                    <a class="action-link" href="/app/submissions/{{ item.id }}/edit/">Editar</a>
+                    <form method="post" action="/app/submissions/{{ item.id }}/mark-submitted/" class="inline inline-action">
+                      {% csrf_token %}
+                      <input type="hidden" name="next" value="/dashboard/">
+                      <button type="submit" class="submission-action-btn submission-action-btn-present" data-submit-label="Presentado">Presentar</button>
+                    </form>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+
+      <div
+        class="panel dashboard-panel has-priority-bar priority-week{% if not due_week_items %} dashboard-panel-empty{% else %} panel-has-alert{% endif %}"
+        {% if due_week_items %}data-collapsible-id="dashboard-due-week"{% endif %}
+      >
+        <div class="collapse-head collapse-head-compact">
+          <h3 class="ui-title-panel collapse-title-wrap">
+            {% if due_week_items %}
+              <button type="button" class="collapse-toggle-inline" data-collapse-toggle>
+                <span class="collapse-chevron" aria-hidden="true">▸</span>
+                <span>Obligaciones que vencen esta semana</span>
+              </button>
+            {% else %}
+              <span class="collapse-static-title">Obligaciones que vencen esta semana</span>
+            {% endif %}
+            {% with count=due_week_items|length %}
+              {% if count %}
+                <span class="panel-count-badge">{{ count }}</span>
+              {% endif %}
+            {% endwith %}
+          </h3>
+          <div class="collapse-head-actions">
+            <a href="/app/submissions/?scope=main">Priorizar</a>
+          </div>
+        </div>
+        {% if due_week_items %}
+        <div class="collapse-body">
+          <div class="table-wrap compact-table">
+            <table>
+              <thead><tr><th>Cliente</th><th>Obligación</th><th>Período</th><th>Vencimiento</th><th>Acciones</th></tr></thead>
+              <tbody>
+                {% for item in due_week_items %}
+                <tr>
+                  <td><a href="/app/clients/{{ item.client_id }}/">{{ item.client.name }}</a></td>
+                  <td>{{ item.obligation_name_display }}</td>
+                  <td>{{ item.period_display }}</td>
+                  <td><span class="status-badge warning">{{ item.due_date|default:"-" }}</span></td>
+                  <td class="table-actions">
+                    <a class="action-link" href="/app/submissions/{{ item.id }}/edit/">Editar</a>
+                    <form method="post" action="/app/submissions/{{ item.id }}/mark-submitted/" class="inline inline-action">
+                      {% csrf_token %}
+                      <input type="hidden" name="next" value="/dashboard/">
+                      <button type="submit" class="submission-action-btn submission-action-btn-present" data-submit-label="Presentado">Presentar</button>
+                    </form>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <aside class="dashboard-work-side">
+      <div
+        class="panel dashboard-panel has-priority-bar priority-critical{% if not urgent_pending_items %} dashboard-panel-empty{% else %} panel-has-alert{% endif %}"
+        {% if urgent_pending_items %}data-collapsible-id="dashboard-urgent-pending"{% endif %}
+      >
+        <div class="collapse-head collapse-head-compact">
+          <h3 class="ui-title-panel collapse-title-wrap">
+            {% if urgent_pending_items %}
+              <button type="button" class="collapse-toggle-inline" data-collapse-toggle>
+                <span class="collapse-chevron" aria-hidden="true">▸</span>
+                <span>Pendientes urgentes</span>
+              </button>
+            {% else %}
+              <span class="collapse-static-title">Pendientes urgentes</span>
+            {% endif %}
+            {% with count=urgent_pending_items|length %}
+              {% if count %}
+                <span class="panel-count-badge">{{ count }}</span>
+              {% endif %}
+            {% endwith %}
+          </h3>
+          <div class="collapse-head-actions">
+            <a href="/app/pending-items/">Ver pendientes</a>
+          </div>
+        </div>
+        {% if urgent_pending_items %}
+        <div class="collapse-body">
+          <div class="list-stack">
+            {% for item in urgent_pending_items %}
+            <div class="list-item list-alert">
+              <div>
+                <strong><a href="/app/clients/{{ item.client_id }}/">{{ item.client.name }}</a></strong>
+                <div>{{ item.description }}</div>
+                <small class="muted">{{ item.expected_date|default:"Sin fecha" }}</small>
+              </div>
+              <span class="status-badge urgent">Urgente</span>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+      </div>
+
+      <div
+        class="panel dashboard-panel dashboard-panel-pending has-priority-bar priority-pending{% if not non_urgent_pending_items %} dashboard-panel-empty{% else %} panel-has-alert{% endif %}"
+        {% if non_urgent_pending_items %}data-collapsible-id="dashboard-normal-pending"{% endif %}
+      >
+        <div class="collapse-head collapse-head-compact">
+          <h3 class="ui-title-panel collapse-title-wrap">
+            {% if non_urgent_pending_items %}
+              <button type="button" class="collapse-toggle-inline" data-collapse-toggle>
+                <span class="collapse-chevron" aria-hidden="true">▸</span>
+                <span>Pendientes</span>
+              </button>
+            {% else %}
+              <span class="collapse-static-title">Pendientes</span>
+            {% endif %}
+            {% with count=non_urgent_pending_items|length %}
+              {% if count %}
+                <span class="panel-count-badge">{{ count }}</span>
+              {% endif %}
+            {% endwith %}
+          </h3>
+          <div class="collapse-head-actions">
+            <a href="/app/pending-items/">Ver todos</a>
+          </div>
+        </div>
+        {% if non_urgent_pending_items %}
+        <div class="collapse-body">
+          <div class="list-stack">
+            {% for item in non_urgent_pending_items %}
+            <div class="list-item list-pending-soft">
+              <div>
+                <strong><a href="/app/clients/{{ item.client_id }}/">{{ item.client.name }}</a></strong>
+                <div>{{ item.description }}</div>
+                <small class="muted">{{ item.expected_date|default:"Sin fecha" }}</small>
+              </div>
+              <span class="status-badge pending">Pendiente</span>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </aside>
+  </section>
+</section>
+
+<section class="dashboard-zone dashboard-zone-secondary">
+  <div class="dashboard-zone-head">
+    <h2 class="dashboard-zone-title">Compromisos tributarios</h2>
+    <span class="dashboard-zone-subtitle">Control de pagos especiales por cliente</span>
+  </div>
+  <section class="dashboard-tax-layout">
+    <div class="dashboard-tax-col">
+      <div
+        class="panel dashboard-panel has-priority-bar priority-critical{% if not tax_due_today_items %} dashboard-panel-empty{% else %} panel-has-alert{% endif %}"
+        data-collapsible-id="dashboard-tax-due-today"
+        {% if not tax_due_today_items %}data-collapsible-default="collapsed"{% endif %}
+      >
+        <div class="collapse-head collapse-head-compact">
+          <h3 class="ui-title-panel collapse-title-wrap">
+            <button type="button" class="collapse-toggle-inline" data-collapse-toggle>
+              <span class="collapse-chevron" aria-hidden="true">▸</span>
+              <span>Vencen hoy</span>
+            </button>
+            <span class="status-badge urgent">{{ tax_due_today_count }}</span>
+          </h3>
+          <div class="collapse-head-actions">
+            <a href="/app/tax-commitments/?due_scope=today">Ver</a>
+          </div>
+        </div>
+        <div class="collapse-body">
+          {% if tax_due_today_items %}
+          <div class="list-stack">
+            {% for item in tax_due_today_items %}
+              <div class="list-item list-alert">
+                <div>
+                  <strong><a href="/app/clients/{{ item.client_id }}/">{{ item.client.name }}</a></strong>
+                  <div>{{ item.type_display }}</div>
+                  <small class="muted">Vence {{ item.due_date|date:"d/m/Y" }}</small>
+                </div>
+                <a class="action-link" href="/app/tax-commitments/?due_scope=today">Ver</a>
+              </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <p class="dashboard-empty-inline">Sin pendientes para hoy.</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <div
+        class="panel dashboard-panel has-priority-bar priority-week{% if not tax_due_week_items %} dashboard-panel-empty{% else %} panel-has-alert{% endif %}"
+        data-collapsible-id="dashboard-tax-due-week"
+        {% if not tax_due_week_items %}data-collapsible-default="collapsed"{% endif %}
+      >
+        <div class="collapse-head collapse-head-compact">
+          <h3 class="ui-title-panel collapse-title-wrap">
+            <button type="button" class="collapse-toggle-inline" data-collapse-toggle>
+              <span class="collapse-chevron" aria-hidden="true">▸</span>
+              <span>Esta semana</span>
+            </button>
+            <span class="status-badge warning">{{ tax_due_week_count }}</span>
+          </h3>
+          <div class="collapse-head-actions">
+            <a href="/app/tax-commitments/?due_scope=week">Ver</a>
+          </div>
+        </div>
+        <div class="collapse-body">
+          {% if tax_due_week_items %}
+          <div class="list-stack">
+            {% for item in tax_due_week_items %}
+              <div class="list-item list-pending-soft">
+                <div>
+                  <strong><a href="/app/clients/{{ item.client_id }}/">{{ item.client.name }}</a></strong>
+                  <div>{{ item.type_display }}</div>
+                  <small class="muted">Vence {{ item.due_date|date:"d/m/Y" }}</small>
+                </div>
+                <a class="action-link" href="/app/tax-commitments/?due_scope=week">Ver</a>
+              </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <p class="dashboard-empty-inline">Sin compromisos esta semana.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="dashboard-tax-col">
+      <div
+        class="panel dashboard-panel has-priority-bar priority-pending{% if not tax_to_notify_items %} dashboard-panel-empty{% else %} panel-has-alert{% endif %}"
+        data-collapsible-id="dashboard-tax-to-notify"
+        {% if not tax_to_notify_items %}data-collapsible-default="collapsed"{% endif %}
+      >
+        <div class="collapse-head collapse-head-compact">
+          <h3 class="ui-title-panel collapse-title-wrap">
+            <button type="button" class="collapse-toggle-inline" data-collapse-toggle>
+              <span class="collapse-chevron" aria-hidden="true">▸</span>
+              <span>Por avisar</span>
+            </button>
+            <span class="status-badge pending">{{ tax_to_notify_count }}</span>
+          </h3>
+          <div class="collapse-head-actions">
+            <a href="/app/tax-commitments/?status=PENDING">Ver</a>
+          </div>
+        </div>
+        <div class="collapse-body">
+          {% if tax_to_notify_items %}
+          <div class="list-stack">
+            {% for item in tax_to_notify_items %}
+              <div class="list-item list-pending-soft">
+                <div>
+                  <strong><a href="/app/clients/{{ item.client_id }}/">{{ item.client.name }}</a></strong>
+                  <div>{{ item.type_display }}</div>
+                  <small class="muted">Vence {{ item.due_date|date:"d/m/Y" }}</small>
+                </div>
+                <a class="action-link" href="/app/tax-commitments/?status=PENDING">Ver</a>
+              </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <p class="dashboard-empty-inline">Sin pendientes por avisar.</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <div
+        class="panel dashboard-panel has-priority-bar priority-overdue{% if not tax_overdue_items %} dashboard-panel-empty{% else %} panel-has-alert{% endif %}"
+        data-collapsible-id="dashboard-tax-overdue"
+        {% if not tax_overdue_items %}data-collapsible-default="collapsed"{% endif %}
+      >
+        <div class="collapse-head collapse-head-compact">
+          <h3 class="ui-title-panel collapse-title-wrap">
+            <button type="button" class="collapse-toggle-inline" data-collapse-toggle>
+              <span class="collapse-chevron" aria-hidden="true">▸</span>
+              <span>Vencidos</span>
+            </button>
+            <span class="status-badge overdue">{{ tax_overdue_count }}</span>
+          </h3>
+          <div class="collapse-head-actions">
+            <a href="/app/tax-commitments/?status=OVERDUE">Ver</a>
+          </div>
+        </div>
+        <div class="collapse-body">
+          {% if tax_overdue_items %}
+          <div class="list-stack">
+            {% for item in tax_overdue_items %}
+              <div class="list-item list-alert">
+                <div>
+                  <strong><a href="/app/clients/{{ item.client_id }}/">{{ item.client.name }}</a></strong>
+                  <div>{{ item.type_display }}</div>
+                  <small class="muted">Vencio {{ item.due_date|date:"d/m/Y" }}</small>
+                </div>
+                <a class="action-link" href="/app/tax-commitments/?status=OVERDUE">Ver</a>
+              </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <p class="dashboard-empty-inline">Sin vencidos.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {% if unscheduled_items %}
+  <div class="panel dashboard-panel has-priority-bar priority-pending panel-has-alert" data-collapsible-id="dashboard-unscheduled" data-collapsible-default="collapsed">
+    <div class="collapse-head collapse-head-compact">
+      <h3 class="ui-title-panel collapse-title-wrap">
+        <button type="button" class="collapse-toggle-inline" data-collapse-toggle>
+          <span class="collapse-chevron" aria-hidden="true">▸</span>
+          <span>Sin fecha definida</span>
+        </button>
+        <span class="panel-count-badge">{{ unscheduled_items|length }}</span>
+      </h3>
+      <div class="collapse-head-actions">
+        <a href="/app/submissions/?scope=main">Gestionar</a>
+      </div>
+    </div>
+    <div class="collapse-body">
+      <div class="table-wrap compact-table">
+        <table>
+          <thead><tr><th>Cliente</th><th>Obligación</th><th>Período</th><th>Acciones</th></tr></thead>
+          <tbody>
+            {% for item in unscheduled_items %}
+            <tr>
+              <td><a href="/app/clients/{{ item.client_id }}/">{{ item.client.name }}</a></td>
+              <td>{{ item.obligation_name_display }}</td>
+              <td>{{ item.period_display }}</td>
+              <td class="table-actions">
+                <a class="action-link" href="/app/submissions/{{ item.id }}/edit/">Editar</a>
+                <form method="post" action="/app/submissions/{{ item.id }}/mark-submitted/" class="inline inline-action">
+                  {% csrf_token %}
+                  <input type="hidden" name="next" value="/dashboard/">
+                  <button type="submit" class="submission-action-btn submission-action-btn-present" data-submit-label="Presentado">Presentar</button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</section>
+
+<section class="dashboard-zone dashboard-zone-status dashboard-zone-secondary">
+  <div class="dashboard-zone-head">
+    <h2 class="dashboard-zone-title">Estado general</h2>
+    <span class="dashboard-zone-subtitle">Resumen operativo de contexto</span>
+  </div>
+  <section class="dashboard-status-layout">
+    {% if is_funcionario %}
+    <div class="panel dashboard-info-strip">
+      <strong>Mi vista operativa:</strong>
+      clientes asignados {{ active_clients_count }}, pendientes abiertos {{ pending_items_count }}, obligaciones abiertas {{ submissions_open_count }}.
+    </div>
+    {% endif %}
+
+    <div class="panel dashboard-panel dashboard-summary-panel">
+      <div class="collapse-head collapse-head-compact">
+        <h3 class="ui-title-panel">Resumen general</h3>
+      </div>
+      <div class="dashboard-summary-grid">
+        <div class="dashboard-summary-item">
+          <span class="dashboard-summary-label">Clientes activos</span>
+          <strong class="dashboard-summary-value">{{ active_clients_count }}</strong>
+        </div>
+        <div class="dashboard-summary-item">
+          <span class="dashboard-summary-label">Pendientes abiertos</span>
+          <strong class="dashboard-summary-value">{{ pending_items_count }}</strong>
+        </div>
+        <div class="dashboard-summary-item">
+          <span class="dashboard-summary-label">Obligaciones abiertas</span>
+          <strong class="dashboard-summary-value">{{ submissions_open_count }}</strong>
+        </div>
+        <div class="dashboard-summary-item">
+          <span class="dashboard-summary-label">Compromisos abiertos</span>
+          <strong class="dashboard-summary-value">{{ tax_open_count }}</strong>
+        </div>
+      </div>
+    </div>
+  </section>
+</section>
+
+<section class="dashboard-zone dashboard-zone-secondary">
+  <div class="dashboard-zone-head">
+    <h2 class="dashboard-zone-title">Atrasados</h2>
+    <span class="dashboard-zone-subtitle">Recordatorio visible para resolver sin cortar la prioridad del dia</span>
+  </div>
+  <section class="dashboard-critical-layout">
+    <div
+      class="panel dashboard-panel has-priority-bar priority-overdue{% if not overdue_items %} dashboard-panel-empty{% else %} panel-has-alert{% endif %}"
+      {% if overdue_items %}data-collapsible-id="dashboard-overdue" data-collapsible-default="collapsed"{% endif %}
+    >
+      <div class="collapse-head collapse-head-compact">
+        <h3 class="ui-title-panel collapse-title-wrap">
+          {% if overdue_items %}
+            <button type="button" class="collapse-toggle-inline" data-collapse-toggle>
+              <span class="collapse-chevron" aria-hidden="true">▸</span>
+              <span>Obligaciones atrasadas</span>
+            </button>
+          {% else %}
+            <span class="collapse-static-title">Obligaciones atrasadas</span>
+          {% endif %}
+          {% with count=overdue_items|length %}
+            {% if count %}
+              <span class="panel-count-badge">{{ count }}</span>
+            {% endif %}
+          {% endwith %}
+        </h3>
+        <div class="collapse-head-actions">
+          <a href="/app/submissions/?scope=main">Atender</a>
+        </div>
+      </div>
+      {% if overdue_items %}
+      <div class="collapse-body">
+        <div class="table-wrap compact-table">
+          <table>
+            <thead><tr><th>Cliente</th><th>Obligación</th><th>Período</th><th>Vencimiento</th><th>Retraso</th><th>Acciones</th></tr></thead>
+            <tbody>
+              {% for item in overdue_items %}
+              <tr>
+                <td><a href="/app/clients/{{ item.client_id }}/">{{ item.client.name }}</a></td>
+                <td>{{ item.obligation_name_display }}</td>
+                <td>{{ item.period_display }}</td>
+                <td>{{ item.due_date|default:"-" }}</td>
+                <td><span class="status-badge overdue">{{ item.days_late|default:"-" }} días</span></td>
+                <td class="table-actions">
+                  <a class="action-link" href="/app/submissions/{{ item.id }}/edit/">Editar</a>
+                  <form method="post" action="/app/submissions/{{ item.id }}/mark-submitted/" class="inline inline-action">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="/dashboard/">
+                    <button type="submit" class="submission-action-btn submission-action-btn-present" data-submit-label="Presentado">Presentar</button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% else %}
+      <p class="dashboard-empty-inline">Sin obligaciones atrasadas.</p>
+      {% endif %}
+    </div>
+  </section>
+</section>
+{% endblock %}

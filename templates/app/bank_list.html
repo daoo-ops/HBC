@@ -1,0 +1,306 @@
+{% extends "base.html" %}
+{% block title %}Bancos y recibos{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h2>Bancos y recibos</h2>
+  {% if can_manage_banks %}
+    <a class="btn" href="/app/banks/new/">Nueva</a>
+  {% endif %}
+</div>
+
+<div class="cards">
+  <article class="card compact"><h3>Activos</h3><p>{{ active_count }}</p></article>
+  <article class="card compact"><h3>Realizados</h3><p>{{ completed_count }}</p></article>
+  <article class="card compact"><h3>Archivados</h3><p>{{ archived_count }}</p></article>
+</div>
+
+<div class="panel">
+  <div class="scope-tabs">
+    <a href="/app/banks/?scope=active" class="scope-tab {% if scope == 'active' %}active{% endif %}">Activos</a>
+    <a href="/app/banks/?scope=completed" class="scope-tab {% if scope == 'completed' %}active{% endif %}">Realizados</a>
+    <a href="/app/banks/?scope=archived" class="scope-tab {% if scope == 'archived' %}active{% endif %}">Archivados</a>
+    <a href="/app/banks/?scope=all" class="scope-tab {% if scope == 'all' %}active{% endif %}">Todos</a>
+  </div>
+</div>
+
+<div class="panel">
+  <form method="get" class="filters">
+    <input type="hidden" name="scope" value="{{ scope }}">
+    <input type="text" name="q" placeholder="Cliente, RUC u observación" value="{{ q }}">
+    <select name="request_type">
+      <option value="">Todos los tipos</option>
+      {% for value,label in request_type_choices %}
+      <option value="{{ value }}" {% if request_type_filter == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    {% if can_manage_banks %}
+    <select name="responsible">
+      <option value="">Todos los responsables</option>
+      {% for user_item in responsible_choices %}
+      <option value="{{ user_item.id }}" {% if responsible_filter == user_item.id|stringformat:'s' %}selected{% endif %}>
+        {{ user_item.username }}
+      </option>
+      {% endfor %}
+    </select>
+    {% endif %}
+    <select name="receipts_status">
+      <option value="">Recibos: todos</option>
+      {% for value,label in document_status_choices %}
+      <option value="{{ value }}" {% if receipts_status_filter == value %}selected{% endif %}>Recibos {{ label }}</option>
+      {% endfor %}
+    </select>
+    <button class="btn">Filtrar</button>
+  </form>
+</div>
+
+{% if scope == 'active' or scope == 'all' %}
+<div class="panel" {% if scope == 'all' %}data-collapsible-id="banks-active-list"{% endif %}>
+  {% if scope == 'all' %}
+  <div class="collapse-head">
+    <h3>Activos</h3>
+    <button type="button" class="collapse-toggle">Colapsar</button>
+  </div>
+  <div class="collapse-body">
+  {% else %}
+  <div class="section-head"><h3>Activos</h3></div>
+  {% endif %}
+  <div class="table-wrap compact-table"><table>
+    <thead><tr><th>Cliente</th><th>Tipo / motivo</th><th>Solicitó</th><th>Responsable</th><th>Estado</th><th>Recibos</th><th>Prioridad</th><th>Acciones</th></tr></thead>
+    <tbody>
+    {% for item in active_items %}
+    <tr id="bank-request-{{ item.id }}" {% if focus_id == item.id %}class="focus-row"{% endif %}>
+      <td>
+        <a href="/app/clients/{{ item.client_id }}/">{{ item.client.name }}</a>
+        <div class="bank-row-links">
+          {% if can_manage_banks %}
+            <a class="action-link bank-action-secondary" href="/app/banks/{{ item.id }}/edit/">Editar</a>
+          {% endif %}
+          <a class="action-link bank-action-secondary" href="/app/banks/{{ item.id }}/note/">Nota</a>
+        </div>
+        {% if item.last_note %}
+          <div class="row-note" title="{{ item.last_note }}">
+            Obs: {{ item.last_note|truncatechars:96 }}
+            {% if item.last_note_by %}
+              · {{ item.last_note_by.username }}
+            {% endif %}
+            {% if item.last_note_at %}
+              · {{ item.last_note_at|date:"Y-m-d H:i" }}
+            {% endif %}
+          </div>
+        {% endif %}
+      </td>
+      <td>
+        {{ item.get_request_type_display }}
+        {% if item.request_type == 'OTRO' and item.request_type_other %}
+          <div class="muted">{{ item.request_type_other }}</div>
+        {% endif %}
+        <div class="muted">
+          Motivo: {{ item.get_operational_reason_display }}
+          {% if item.operational_reason == 'OTHER' and item.operational_reason_other %}
+            ({{ item.operational_reason_other }})
+          {% endif %}
+        </div>
+      </td>
+      <td>{{ item.requested_by.username|default:"-" }}</td>
+      <td>
+        {% if item.responsible %}
+          {{ item.responsible.username }}
+        {% else %}
+          <span class="status-badge warning">Sin asignar</span>
+        {% endif %}
+      </td>
+      <td><span class="status-badge {% if item.status == 'IN_PROGRESS' %}soon{% else %}pending{% endif %}">{{ item.get_status_display }}</span></td>
+      <td>
+        {% if item.receipts_status == 'LOADED' %}
+          <div class="bank-receipts-cell">
+            <span class="status-badge completed">Cargado</span>
+            <form method="post" action="/app/banks/{{ item.id }}/mark-receipts-pending/" class="inline inline-action">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{{ request.get_full_path }}">
+              <button type="submit" class="link-btn bank-reset-receipts" title="Volver a pendiente">↺</button>
+            </form>
+          </div>
+        {% else %}
+          <div class="bank-receipts-cell">
+            <span class="status-badge pending">Pendiente</span>
+            {% if item.receipts_client_notified %}
+              <span
+                class="status-badge info bank-notified-badge"
+                title="Avisado{% if item.receipts_notified_by %} por {{ item.receipts_notified_by.username }}{% endif %}{% if item.receipts_notified_at %} · {{ item.receipts_notified_at|date:'Y-m-d H:i' }}{% endif %}"
+              >
+                Avisado
+              </span>
+            {% else %}
+              <form method="post" action="/app/banks/{{ item.id }}/mark-receipts-notified/" class="inline inline-action">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <button type="submit" class="link-btn bank-action-aux bank-notified-action">Avisado</button>
+              </form>
+            {% endif %}
+          </div>
+        {% endif %}
+      </td>
+      <td>
+        <div class="bank-priority-cell">
+          <span class="status-badge {% if item.request_priority == 'URGENT' %}urgent{% else %}pending{% endif %}">
+            {{ item.get_request_priority_display }}
+          </span>
+          {% if item.receipts_pending_item and item.receipts_pending_item.status == 'OPEN' and not item.receipts_pending_item.is_deleted %}
+            <span class="status-badge info">Pendiente activa</span>
+          {% elif item.receipts_status != 'LOADED' and can_manage_banks %}
+            <div class="bank-priority-actions">
+              <form method="post" action="/app/banks/{{ item.id }}/create-receipts-pending/" class="inline inline-action">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <button type="submit" class="link-btn bank-action-aux bank-priority-btn-normal">Crear pendiente</button>
+              </form>
+            </div>
+          {% endif %}
+        </div>
+      </td>
+      <td class="table-actions">
+        <div class="bank-actions-flow">
+            {% if item.receipts_status != 'LOADED' %}
+            <form method="post" action="/app/banks/{{ item.id }}/mark-receipts-loaded/" class="inline inline-action">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{{ request.get_full_path }}">
+              <button type="submit" class="link-btn bank-action-main bank-action-flow">Cargar</button>
+            </form>
+            {% endif %}
+            {% if can_manage_banks %}
+              <form method="post" action="/app/banks/{{ item.id }}/mark-completed/" class="inline inline-action">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <button type="submit" class="link-btn bank-action-main bank-action-flow">Finalizar</button>
+              </form>
+            {% endif %}
+        </div>
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="8">Sin solicitudes activas.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% if scope == 'all' %}
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+{% if scope == 'completed' or scope == 'all' %}
+<div class="panel" {% if scope == 'all' %}data-collapsible-id="banks-completed-list"{% endif %}>
+  {% if scope == 'all' %}
+  <div class="collapse-head">
+    <h3>Realizados</h3>
+    <button type="button" class="collapse-toggle">Colapsar</button>
+  </div>
+  <div class="collapse-body">
+  {% else %}
+  <div class="section-head"><h3>Realizados</h3></div>
+  {% endif %}
+  <div class="table-wrap compact-table"><table>
+    <thead><tr><th>Cliente</th><th>Tipo</th><th>Solicitó</th><th>Responsable</th><th>Estado</th><th>Recibos</th><th>Acciones</th></tr></thead>
+    <tbody>
+    {% for item in completed_items %}
+    <tr id="bank-request-{{ item.id }}" {% if focus_id == item.id %}class="focus-row"{% endif %}>
+      <td>
+        <a href="/app/clients/{{ item.client_id }}/">{{ item.client.name }}</a>
+        {% if item.last_note %}
+          <div class="row-note" title="{{ item.last_note }}">
+            Obs: {{ item.last_note|truncatechars:96 }}
+            {% if item.last_note_by %}
+              · {{ item.last_note_by.username }}
+            {% endif %}
+            {% if item.last_note_at %}
+              · {{ item.last_note_at|date:"Y-m-d H:i" }}
+            {% endif %}
+          </div>
+        {% endif %}
+      </td>
+      <td>{{ item.get_request_type_display }}</td>
+      <td>{{ item.requested_by.username|default:"-" }}</td>
+      <td>{% if item.responsible %}{{ item.responsible.username }}{% else %}<span class="status-badge warning">Sin asignar</span>{% endif %}</td>
+      <td><span class="status-badge completed">Realizado</span></td>
+      <td><span class="status-badge {% if item.receipts_status == 'LOADED' %}completed{% else %}pending{% endif %}">{{ item.get_receipts_status_display }}</span></td>
+      <td class="table-actions">
+        {% if can_manage_banks %}
+          <form method="post" action="/app/banks/{{ item.id }}/archive/" class="inline inline-action">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <button type="submit" class="link-btn">Archivar</button>
+          </form>
+          <a class="action-link" href="/app/banks/{{ item.id }}/edit/">Editar</a>
+        {% endif %}
+        <a class="action-link" href="/app/banks/{{ item.id }}/note/">Nota</a>
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="7">Sin solicitudes realizadas.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% if scope == 'all' %}
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+{% if scope == 'archived' or scope == 'all' %}
+<div class="panel" {% if scope == 'all' %}data-collapsible-id="banks-archived-list"{% endif %}>
+  {% if scope == 'all' %}
+  <div class="collapse-head">
+    <h3>Archivados</h3>
+    <button type="button" class="collapse-toggle">Colapsar</button>
+  </div>
+  <div class="collapse-body">
+  {% else %}
+  <div class="section-head"><h3>Archivados</h3></div>
+  {% endif %}
+  <div class="table-wrap compact-table"><table>
+    <thead><tr><th>Cliente</th><th>Tipo</th><th>Solicitó</th><th>Responsable</th><th>Estado</th><th>Recibos</th><th>Acciones</th></tr></thead>
+    <tbody>
+    {% for item in archived_items %}
+    <tr id="bank-request-{{ item.id }}" {% if focus_id == item.id %}class="focus-row"{% endif %}>
+      <td>
+        <a href="/app/clients/{{ item.client_id }}/">{{ item.client.name }}</a>
+        {% if item.last_note %}
+          <div class="row-note" title="{{ item.last_note }}">
+            Obs: {{ item.last_note|truncatechars:96 }}
+            {% if item.last_note_by %}
+              · {{ item.last_note_by.username }}
+            {% endif %}
+            {% if item.last_note_at %}
+              · {{ item.last_note_at|date:"Y-m-d H:i" }}
+            {% endif %}
+          </div>
+        {% endif %}
+      </td>
+      <td>{{ item.get_request_type_display }}</td>
+      <td>{{ item.requested_by.username|default:"-" }}</td>
+      <td>{% if item.responsible %}{{ item.responsible.username }}{% else %}<span class="status-badge warning">Sin asignar</span>{% endif %}</td>
+      <td><span class="status-badge archived">Archivado</span></td>
+      <td><span class="status-badge {% if item.receipts_status == 'LOADED' %}completed{% else %}pending{% endif %}">{{ item.get_receipts_status_display }}</span></td>
+      <td class="table-actions">
+        {% if can_manage_banks %}
+          <form method="post" action="/app/banks/{{ item.id }}/reopen/" class="inline inline-action">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <button type="submit" class="link-btn">Reabrir</button>
+          </form>
+          <a class="action-link" href="/app/banks/{{ item.id }}/edit/">Editar</a>
+        {% endif %}
+        <a class="action-link" href="/app/banks/{{ item.id }}/note/">Nota</a>
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="7">Sin solicitudes archivadas.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% if scope == 'all' %}
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,575 @@
+{% extends "base.html" %}
+{% load money_format %}
+{% block title %}Ficha cliente{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h2>{{ client.name }}</h2>
+    <div class="entity-meta">
+      <span class="meta-pill">RUC: <strong>{{ client.ruc|default:"-" }}</strong></span>
+      <span class="meta-pill">DV: <strong>{{ client.ruc_digit|default:"-" }}</strong></span>
+      <span class="status-badge {{ client.status|lower }}">{{ client.get_status_display }}</span>
+      <span class="status-badge zone">{{ client.get_zone_display }}</span>
+      <span class="status-badge {% if client.invoice_period_status == 'RECEIVED' %}completed{% else %}pending{% endif %}">
+        Facturas período: {{ client.get_invoice_period_status_display }}
+      </span>
+      {% if can_view_financial %}
+        {% if current_debt > 0 %}
+          <span class="status-badge financial-soft">Deuda {{ current_debt|money:"PYG" }}</span>
+        {% else %}
+          <span class="status-badge financial-soft">Sin deuda</span>
+        {% endif %}
+      {% endif %}
+    </div>
+  </div>
+  <div class="actions-inline">
+    <a class="btn btn-secondary" href="/app/clients/">Volver</a>
+    {% if can_manage_clients or user.role == 'FUNCIONARIO' %}
+      <a class="btn" href="/app/clients/{{ client.id }}/edit/">Editar cliente</a>
+    {% endif %}
+  </div>
+</div>
+
+<div class="cards client-kpis">
+  <article class="card compact"><h3>Vencimiento</h3><p>{{ client.due_date|default:"-" }}</p></article>
+  <article class="card compact"><h3>Presentación</h3><p>{{ client.submission_date|default:"-" }}</p></article>
+  {% if can_view_financial %}
+    <article class="card compact"><h3>Honorario PYG</h3><p>{{ client.monthly_amount_pyg|money:"PYG" }}</p></article>
+    {% if client.monthly_amount_usd and client.monthly_amount_usd > 0 %}
+      <article class="card compact"><h3>Honorario USD</h3><p>{{ client.monthly_amount_usd|money:"USD" }}</p></article>
+    {% endif %}
+    {% if client.contract_until %}
+      <article class="card compact"><h3>Contrato hasta</h3><p>{{ client.contract_until }}</p></article>
+    {% endif %}
+    <article class="card compact card-financial-soft"><h3>Deuda actual</h3><p>{{ current_debt|money:"PYG" }}</p></article>
+  {% endif %}
+</div>
+
+<div class="panel">
+  <div class="tab-nav" role="tablist" aria-label="Secciones de cliente">
+    <button class="tab-btn active" data-tab="general">Datos generales</button>
+    <button class="tab-btn" data-tab="notes">Notas <span class="tab-count">{{ notes|length }}</span></button>
+    <button class="tab-btn" data-tab="pending">Pendientes <span class="tab-count">{{ pending_items|length }}</span></button>
+    <button class="tab-btn" data-tab="submissions">Obligaciones fiscales <span class="tab-count">{{ submissions|length }}</span></button>
+    <button class="tab-btn" data-tab="payment-logs">Bitácora de pagos <span class="tab-count">{{ payment_logs|length }}</span></button>
+    {% if can_view_financial %}
+      <button class="tab-btn" data-tab="charges">Cobros/Pagos <span class="tab-count">{{ charges|length }}</span></button>
+      <button class="tab-btn" data-tab="contracts">Contratos <span class="tab-count">{{ contracts|length }}</span></button>
+    {% endif %}
+  </div>
+
+  <section class="tab-panel active" id="tab-general">
+    <div class="grid">
+      <div class="panel inner-panel">
+        <h3>Contacto y ubicación</h3>
+        <ul class="detail-list">
+          <li><strong>Responsable:</strong> {{ client.responsible.username|default:"Sin asignar" }}</li>
+          <li><strong>Teléfono:</strong> {{ client.phone|default:"-" }}</li>
+          <li><strong>Dirección:</strong> {{ client.address|default:"-" }}</li>
+          <li><strong>Zona:</strong> {{ client.get_zone_display }}</li>
+          <li>
+            <strong>Facturas del período:</strong>
+            <span class="client-invoice-status-inline">
+              <span class="status-badge {% if client.invoice_period_status == 'RECEIVED' %}completed{% else %}pending{% endif %}">
+                {{ client.get_invoice_period_status_display }}
+              </span>
+              {% if client.invoice_period_status != 'RECEIVED' %}
+                <form method="post" action="/app/clients/{{ client.id }}/invoice-period-status/" class="inline inline-action client-invoice-status-form">
+                  {% csrf_token %}
+                  <input type="hidden" name="invoice_period_status" value="RECEIVED">
+                  <input type="hidden" name="next" value="/app/clients/{{ client.id }}/">
+                  <button type="submit" class="client-inline-status-action" title="Marcar recibidas" aria-label="Marcar recibidas">✓</button>
+                </form>
+              {% else %}
+                <form method="post" action="/app/clients/{{ client.id }}/invoice-period-status/" class="inline inline-action client-invoice-status-form">
+                  {% csrf_token %}
+                  <input type="hidden" name="invoice_period_status" value="PENDING">
+                  <input type="hidden" name="next" value="/app/clients/{{ client.id }}/">
+                  <button type="submit" class="client-inline-status-action" title="Volver a pendiente" aria-label="Volver a pendiente">↺</button>
+                </form>
+              {% endif %}
+            </span>
+          </li>
+        </ul>
+      </div>
+      <div class="panel inner-panel">
+        <h3>Datos contables</h3>
+        <ul class="detail-list">
+          <li><strong>Tipo presentación:</strong> {{ client.presentation_type|default:"-" }}</li>
+          <li>
+            <strong>Obligaciones activas:</strong>
+            {% if obligations %}
+              {% for link in obligations %}
+                <span class="status-badge ok">
+                  {{ link.obligation.name }}{% if link.obligation.form_code %} · F{{ link.obligation.form_code }}{% endif %}
+                </span>
+              {% endfor %}
+            {% else %}
+              -
+            {% endif %}
+          </li>
+          {% if obligations_pending_review %}
+          <li>
+            <strong>Revisión manual:</strong>
+            <span class="status-badge soon">{{ obligations_pending_review|length }} caso(s)</span>
+          </li>
+          {% endif %}
+          <li><strong>Pendientes (rápido):</strong> {{ client.pending_notes|default:"-" }}</li>
+          <li><strong>Observaciones generales:</strong> {{ client.observations|default:"-" }}</li>
+        </ul>
+      </div>
+    </div>
+    {% if responsibility_history %}
+    <div class="panel inner-panel" style="margin-top:10px;">
+      <h3>Historial de Responsable</h3>
+      <div class="table-wrap compact-table">
+        <table>
+          <thead><tr><th>Fecha</th><th>Anterior</th><th>Nuevo</th><th>Cambiado por</th></tr></thead>
+          <tbody>
+          {% for item in responsibility_history %}
+            <tr>
+              <td>{{ item.changed_at|date:"Y-m-d H:i" }}</td>
+              <td>{{ item.old_responsible.username|default:"-" }}</td>
+              <td>{{ item.new_responsible.username|default:"-" }}</td>
+              <td>{{ item.changed_by.username|default:"-" }}</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
+  </section>
+
+  <section class="tab-panel" id="tab-notes">
+    <div class="section-head">
+      <h3>Notas / observaciones</h3>
+    </div>
+    <form method="post" action="/app/clients/{{ client.id }}/notes/new/" class="inline-form">
+      {% csrf_token %}
+      {{ note_form.note }}
+      <button type="submit" class="btn">Agregar nota</button>
+    </form>
+    <div class="panel inner-panel" data-collapsible-id="client-{{ client.id }}-notes-list">
+      <div class="collapse-head">
+        <h4>Historial</h4>
+        <button type="button" class="collapse-toggle">Colapsar</button>
+      </div>
+      <div class="collapse-body">
+        <div class="list-stack">
+          {% for note in notes %}
+          <div class="list-item">
+            <div>
+              <div>{{ note.note|linebreaksbr }}</div>
+              <small class="muted">{{ note.created_at }} · {{ note.created_by|default:"sistema" }}</small>
+            </div>
+            <a class="btn btn-secondary" href="/app/notes/{{ note.id }}/edit/">Editar</a>
+          </div>
+          {% empty %}
+          <div class="empty-row">Sin notas aún.</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="tab-panel" id="tab-pending">
+    <div class="section-head">
+      <h3>Pendientes</h3>
+      <a class="btn" href="/app/pending-items/new/?client={{ client.id }}">Nuevo pendiente</a>
+    </div>
+    <div class="panel inner-panel" data-collapsible-id="client-{{ client.id }}-pending-open">
+      <div class="collapse-head">
+        <h4>Abiertas</h4>
+        <div class="actions-inline">
+          <span class="status-badge open">{{ open_pending_items|length }}</span>
+          <button type="button" class="collapse-toggle">Colapsar</button>
+        </div>
+      </div>
+      <div class="collapse-body">
+      <div class="table-wrap compact-table">
+      <table>
+        <thead><tr><th>Descripción</th><th>Prioridad</th><th>Fecha</th><th>Acciones</th></tr></thead>
+        <tbody>
+        {% for item in open_pending_items %}
+          <tr>
+            <td>{{ item.description }}</td>
+            <td><span class="status-badge {{ item.priority|lower }}">{{ item.get_priority_display }}</span></td>
+            <td>{{ item.expected_date|default:"-" }}</td>
+            <td class="table-actions">
+              <a class="action-link" href="/app/pending-items/{{ item.id }}/edit/">Editar</a>
+              <form method="post" action="/app/pending-items/{{ item.id }}/resolve/" class="inline inline-action">
+                {% csrf_token %}
+                <button type="submit" class="link-btn">Resolver</button>
+              </form>
+              <form method="post" action="/app/pending-items/{{ item.id }}/delete/" class="inline inline-action">
+                {% csrf_token %}
+                <button type="submit" class="link-btn link-btn-danger">Eliminar</button>
+              </form>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="4">Sin pendientes abiertos.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      </div>
+      </div>
+    </div>
+    <div class="panel inner-panel" data-collapsible-id="client-{{ client.id }}-pending-resolved">
+      <div class="collapse-head">
+        <h4>Resueltas</h4>
+        <div class="actions-inline">
+          <span class="status-badge resolved">{{ resolved_pending_items|length }}</span>
+          <button type="button" class="collapse-toggle">Colapsar</button>
+        </div>
+      </div>
+      <div class="collapse-body">
+      <div class="table-wrap compact-table">
+      <table>
+        <thead><tr><th>Descripción</th><th>Prioridad</th><th>Resuelta</th><th>Acciones</th></tr></thead>
+        <tbody>
+        {% for item in resolved_pending_items %}
+          <tr>
+            <td>{{ item.description }}</td>
+            <td><span class="status-badge {{ item.priority|lower }}">{{ item.get_priority_display }}</span></td>
+            <td>{{ item.resolved_at|date:"Y-m-d H:i"|default:"-" }}</td>
+            <td class="table-actions">
+              <a class="action-link" href="/app/pending-items/{{ item.id }}/edit/">Editar</a>
+              <form method="post" action="/app/pending-items/{{ item.id }}/delete/" class="inline inline-action">
+                {% csrf_token %}
+                <button type="submit" class="link-btn link-btn-danger">Eliminar</button>
+              </form>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="4">Sin pendientes resueltos.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="tab-panel" id="tab-submissions">
+    <div class="section-head">
+      <h3>Obligaciones fiscales</h3>
+      <a class="btn" href="/app/submissions/new/?client={{ client.id }}">Registrar obligación</a>
+    </div>
+    <div class="panel inner-panel" data-collapsible-id="client-{{ client.id }}-submissions-active">
+      <div class="collapse-head">
+        <h4>Flujo activo</h4>
+        <div class="actions-inline">
+          <span class="status-badge pending">{{ submission_active_items|length }}</span>
+          <button type="button" class="collapse-toggle">Colapsar</button>
+        </div>
+      </div>
+      <div class="collapse-body">
+      <div class="table-wrap compact-table">
+      <table>
+        <thead><tr><th>Obligación</th><th>Formulario</th><th>Período</th><th>Vencimiento</th><th>Presentado</th><th>Estado</th><th>Acciones</th></tr></thead>
+        <tbody>
+        {% for item in submission_active_items %}
+          <tr>
+            <td>{{ item.obligation_name_display }} {% if item.needs_manual_review %}<span class="status-badge warning">Revisar</span>{% endif %}</td>
+            <td>{{ item.obligation_form_display }}</td>
+            <td>{{ item.period_display }}</td>
+            <td>{{ item.due_date|default:"-" }}</td>
+            <td>{{ item.submitted_at|default:"-" }}</td>
+            <td>
+              {% if item.status == 'LATE' or item.status == 'PENDING' and item.due_date and item.due_date < today %}
+                <span class="status-badge overdue">Vencida</span>
+              {% elif item.status == 'PENDING' and item.due_date and item.due_date <= soon_cutoff %}
+                <span class="status-badge urgent">Urgente</span>
+              {% else %}
+                <span class="status-badge pending">{{ item.get_status_display }}</span>
+              {% endif %}
+            </td>
+            <td class="table-actions">
+              <a class="action-link" href="/app/submissions/{{ item.id }}/edit/">Editar</a>
+              <form method="post" action="/app/submissions/{{ item.id }}/mark-submitted/" class="inline inline-action">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="/app/clients/{{ client.id }}/">
+                <button type="submit" class="submission-action-btn submission-action-btn-present" data-submit-label="Presentado">Presentar</button>
+              </form>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="7">Sin obligaciones activas.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      </div>
+      </div>
+    </div>
+
+    <div class="panel inner-panel" data-collapsible-id="client-{{ client.id }}-submissions-submitted">
+      <div class="collapse-head">
+        <h4>Finalizados</h4>
+        <div class="actions-inline">
+          <span class="status-badge submitted">{{ submission_submitted_items|length }}</span>
+          <button type="button" class="collapse-toggle">Colapsar</button>
+        </div>
+      </div>
+      <div class="collapse-body">
+      <div class="table-wrap compact-table">
+      <table>
+        <thead><tr><th>Obligación</th><th>Formulario</th><th>Período</th><th>Vencimiento</th><th>Presentado</th><th>Estado</th><th>Acciones</th></tr></thead>
+        <tbody>
+        {% for item in submission_submitted_items %}
+          <tr>
+            <td>{{ item.obligation_name_display }} {% if item.needs_manual_review %}<span class="status-badge warning">Revisar</span>{% endif %}</td>
+            <td>{{ item.obligation_form_display }}</td>
+            <td>{{ item.period_display }}</td>
+            <td>{{ item.due_date|default:"-" }}</td>
+            <td>{{ item.submitted_at|default:"-" }}</td>
+            <td><span class="status-badge submitted">Finalizado</span></td>
+            <td class="table-actions">
+              <a class="action-link" href="/app/submissions/{{ item.id }}/edit/">Editar</a>
+              <form method="post" action="/app/submissions/{{ item.id }}/archive/" class="inline inline-action">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="/app/clients/{{ client.id }}/">
+                <button type="submit" class="link-btn">Archivar</button>
+              </form>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="7">Sin obligaciones finalizadas.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      </div>
+      </div>
+    </div>
+
+    <div class="panel inner-panel" data-collapsible-id="client-{{ client.id }}-submissions-archived">
+      <div class="collapse-head">
+        <h4>Archivados</h4>
+        <div class="actions-inline">
+          <span class="status-badge archived">{{ submission_archived_items|length }}</span>
+          <button type="button" class="collapse-toggle">Colapsar</button>
+        </div>
+      </div>
+      <div class="collapse-body">
+      <div class="table-wrap compact-table">
+      <table>
+        <thead><tr><th>Obligación</th><th>Formulario</th><th>Período</th><th>Archivado</th><th>Por</th><th>Acciones</th></tr></thead>
+        <tbody>
+        {% for item in submission_archived_items %}
+          <tr>
+            <td>{{ item.obligation_name_display }} {% if item.needs_manual_review %}<span class="status-badge warning">Revisar</span>{% endif %}</td>
+            <td>{{ item.obligation_form_display }}</td>
+            <td>{{ item.period_display }}</td>
+            <td>{{ item.archived_at|date:"Y-m-d H:i"|default:"-" }}</td>
+            <td>{{ item.archived_by|default:"-" }}</td>
+            <td class="table-actions">
+              <a class="action-link" href="/app/submissions/{{ item.id }}/edit/">Editar</a>
+              <form method="post" action="/app/submissions/{{ item.id }}/reopen/" class="inline inline-action">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="/app/clients/{{ client.id }}/">
+                <button type="submit" class="link-btn">Reabrir</button>
+              </form>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6">Sin obligaciones archivadas.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="tab-panel" id="tab-payment-logs">
+    <div class="section-head">
+      <h3>Bitácora de pagos</h3>
+      <a class="btn" href="/app/payment-logs/new/?client={{ client.id }}">Registrar recepción</a>
+    </div>
+    <div class="panel inner-panel" data-collapsible-id="client-{{ client.id }}-payment-logs-list">
+      <div class="collapse-head">
+        <h4>Historial operativo</h4>
+        <button type="button" class="collapse-toggle">Colapsar</button>
+      </div>
+      <div class="collapse-body">
+      <div class="table-wrap compact-table">
+        <table>
+          <thead><tr><th>Fecha recepción</th><th>Quién pagó</th><th>Concepto</th><th>Medio</th><th>Cheque tercero</th><th>Observación</th><th>Registrado por</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <tbody>
+          {% for item in payment_logs %}
+            <tr>
+              <td>{{ item.payment_date|date:"d/m/Y" }}</td>
+              <td>{{ item.paid_by }}</td>
+              <td>
+                {{ item.get_concept_type_display }}
+                {% if item.concept_type == 'OTROS' and item.concept_other %}
+                  · {{ item.concept_other }}
+                {% endif %}
+              </td>
+              <td>{{ item.get_payment_method_display }}</td>
+              <td>{{ item.third_party_check_name|default:"-" }}</td>
+              <td>{{ item.observation|default:"-"|truncatechars:60 }}</td>
+              <td>{{ item.recorded_by.username|default:"-" }}</td>
+              <td>
+                {% if item.is_archived %}
+                  <span class="payment-log-state payment-log-state-archived">Archivado</span>
+                {% else %}
+                  <span class="payment-log-state payment-log-state-active">Activo</span>
+                {% endif %}
+              </td>
+              <td class="table-actions payment-log-actions">
+                <a class="action-link payment-log-action" href="/app/payment-logs/{{ item.id }}/edit/?next=/app/clients/{{ client.id }}/">Editar</a>
+                {% if item.is_archived %}
+                  <form method="post" action="/app/payment-logs/{{ item.id }}/unarchive/" class="inline inline-action">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="/app/clients/{{ client.id }}/">
+                    <button type="submit" class="link-btn payment-log-action-btn">Reabrir</button>
+                  </form>
+                {% else %}
+                  <form method="post" action="/app/payment-logs/{{ item.id }}/archive/" class="inline inline-action">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="/app/clients/{{ client.id }}/">
+                    <button type="submit" class="link-btn payment-log-action-btn">Archivar</button>
+                  </form>
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="9">Sin registros en la bitácora de pagos.</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      </div>
+    </div>
+  </section>
+
+  {% if can_view_financial %}
+    <section class="tab-panel" id="tab-charges">
+      <div class="section-head">
+        <h3>Cobros y pagos</h3>
+        <a class="btn" href="/app/charges/new/?client={{ client.id }}">Registrar cobro</a>
+      </div>
+      <div class="panel inner-panel" data-collapsible-id="client-{{ client.id }}-charges-list">
+        <div class="collapse-head">
+          <h4>Historial</h4>
+          <button type="button" class="collapse-toggle">Colapsar</button>
+        </div>
+        <div class="collapse-body">
+        <div class="table-wrap compact-table">
+        <table>
+          <thead><tr><th>Periodo</th><th>Tipo</th><th>Monto</th><th>Deuda</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <tbody>
+          {% for item in charges %}
+            <tr>
+              <td>{{ item.period_month }}</td>
+              <td>
+                {% if item.payment_type == 'HONORARIOS' %}
+                  <span class="status-badge type-honorarios">Honorarios</span>
+                {% elif item.payment_type == 'IMPUESTOS' %}
+                  <span class="status-badge type-impuestos">Impuestos</span>
+                {% else %}
+                  <span class="status-badge type-otros">Otros</span>
+                {% endif %}
+              </td>
+              <td>{{ item.amount|money:item.currency }} {{ item.currency }}</td>
+              <td>{{ item.debt_amount|money:item.currency }}</td>
+              <td>
+                {% if item.status == 'PAID' %}
+                  <span class="status-badge paid">Pagado</span>
+                {% else %}
+                  <span class="status-badge pending">Pendiente</span>
+                {% endif %}
+              </td>
+              <td class="table-actions">
+                <a class="action-link" href="/app/charges/{{ item.id }}/edit/">Editar</a>
+                {% if item.status != 'PAID' %}
+                <form method="post" action="/app/charges/{{ item.id }}/mark-paid/" class="inline inline-action">
+                  {% csrf_token %}
+                  <button type="submit" class="link-btn">Marcar pagado</button>
+                </form>
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="6">Sin cobros registrados.</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+        </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="tab-panel" id="tab-contracts">
+      <div class="section-head">
+        <h3>Contratos</h3>
+        {% if can_manage_contracts %}
+          <a class="btn" href="/app/contracts/new/?client={{ client.id }}">Nuevo contrato</a>
+        {% endif %}
+      </div>
+      <div class="panel inner-panel" data-collapsible-id="client-{{ client.id }}-contracts-list">
+        <div class="collapse-head">
+          <h4>Historial</h4>
+          <button type="button" class="collapse-toggle">Colapsar</button>
+        </div>
+        <div class="collapse-body">
+        <div class="table-wrap compact-table">
+        <table>
+          <thead><tr><th>Inicio</th><th>Fin</th><th>Monto</th><th>Moneda</th><th>Activo</th><th>Acciones</th></tr></thead>
+          <tbody>
+          {% for item in contracts %}
+            <tr>
+              <td>{{ item.start_date|default:"-" }}</td>
+              <td>{{ item.end_date|default:"-" }}</td>
+              <td>{{ item.monthly_amount|money:item.currency }}</td>
+              <td>{{ item.currency }}</td>
+              <td>
+                {% if item.active %}
+                  <span class="status-badge active">Activo</span>
+                {% else %}
+                  <span class="status-badge inactive">Inactivo</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if can_manage_contracts %}
+                  <a class="action-link" href="/app/contracts/{{ item.id }}/edit/">Editar</a>
+                {% else %}
+                  -
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="6">Sin contratos.</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+        </div>
+        </div>
+      </div>
+    </section>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  const buttons = document.querySelectorAll('.tab-btn');
+  const panels = document.querySelectorAll('.tab-panel');
+
+  function activate(tabName) {
+    buttons.forEach((btn) => btn.classList.toggle('active', btn.dataset.tab === tabName));
+    panels.forEach((panel) => panel.classList.toggle('active', panel.id === 'tab-' + tabName));
+  }
+
+  buttons.forEach((btn) => {
+    btn.addEventListener('click', function () {
+      activate(this.dataset.tab);
+    });
+  });
+})();
+</script>
+{% endblock %}

@@ -53,7 +53,6 @@
     <button class="tab-btn" data-tab="submissions">Obligaciones fiscales <span class="tab-count">{{ submissions|length }}</span></button>
     <button class="tab-btn" data-tab="payment-logs">Bitácora de pagos <span class="tab-count">{{ payment_logs|length }}</span></button>
     {% if can_view_financial %}
-      <button class="tab-btn" data-tab="charges">Cobros/Pagos <span class="tab-count">{{ charges|length }}</span></button>
       <button class="tab-btn" data-tab="contracts">Contratos <span class="tab-count">{{ contracts|length }}</span></button>
     {% endif %}
   </div>
@@ -447,62 +446,6 @@
   </section>
 
   {% if can_view_financial %}
-    <section class="tab-panel" id="tab-charges">
-      <div class="section-head">
-        <h3>Cobros y pagos</h3>
-        <a class="btn" href="/app/charges/new/?client={{ client.id }}">Registrar cobro</a>
-      </div>
-      <div class="panel inner-panel" data-collapsible-id="client-{{ client.id }}-charges-list">
-        <div class="collapse-head">
-          <h4>Historial</h4>
-          <button type="button" class="collapse-toggle">Colapsar</button>
-        </div>
-        <div class="collapse-body">
-        <div class="table-wrap compact-table">
-        <table>
-          <thead><tr><th>Periodo</th><th>Tipo</th><th>Monto</th><th>Deuda</th><th>Estado</th><th>Acciones</th></tr></thead>
-          <tbody>
-          {% for item in charges %}
-            <tr>
-              <td>{{ item.period_month }}</td>
-              <td>
-                {% if item.payment_type == 'HONORARIOS' %}
-                  <span class="status-badge type-honorarios">Honorarios</span>
-                {% elif item.payment_type == 'IMPUESTOS' %}
-                  <span class="status-badge type-impuestos">Impuestos</span>
-                {% else %}
-                  <span class="status-badge type-otros">Otros</span>
-                {% endif %}
-              </td>
-              <td>{{ item.amount|money:item.currency }} {{ item.currency }}</td>
-              <td>{{ item.debt_amount|money:item.currency }}</td>
-              <td>
-                {% if item.status == 'PAID' %}
-                  <span class="status-badge paid">Pagado</span>
-                {% else %}
-                  <span class="status-badge pending">Pendiente</span>
-                {% endif %}
-              </td>
-              <td class="table-actions">
-                <a class="action-link" href="/app/charges/{{ item.id }}/edit/">Editar</a>
-                {% if item.status != 'PAID' %}
-                <form method="post" action="/app/charges/{{ item.id }}/mark-paid/" class="inline inline-action">
-                  {% csrf_token %}
-                  <button type="submit" class="link-btn">Marcar pagado</button>
-                </form>
-                {% endif %}
-              </td>
-            </tr>
-          {% empty %}
-            <tr><td colspan="6">Sin cobros registrados.</td></tr>
-          {% endfor %}
-          </tbody>
-        </table>
-        </div>
-        </div>
-      </div>
-    </section>
-
     <section class="tab-panel" id="tab-contracts">
       <div class="section-head">
         <h3>Contratos</h3>

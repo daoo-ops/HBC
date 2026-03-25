@@ -33,3 +33,7 @@ yarn-error.log*
 *.xlsx
 *.csv
 *.tsv
+!BASE 1.xls
+!BASE 2.xls
+!BASE 3.xls
+!CLIENTES HBC - VALOR.xlsx

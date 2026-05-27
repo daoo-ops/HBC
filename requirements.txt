@@ -3,3 +3,5 @@ djangorestframework==3.16.1
 openpyxl==3.1.5
 xlrd==2.0.2
 psycopg2-binary==2.9.11
+gunicorn==21.2.0
+whitenoise==6.7.0

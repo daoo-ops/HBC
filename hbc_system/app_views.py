@@ -989,10 +989,7 @@ def app_pending_delete(request, item_id):
         after_data=get_instance_snapshot(item),
     )
     messages.success(request, "Pendiente eliminado.")
-    next_url = request.POST.get("next")
-    if next_url:
-        return redirect(next_url)
-    return redirect("app-client-detail", client_id=item.client_id)
+    return redirect(_next_or_default(request, f"/app/clients/{item.client_id}/"))
 
 
 @login_required

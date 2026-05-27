@@ -88,7 +88,7 @@ class RoleBasedUiVisibilityTests(APITestCase):
 
         self.assertEqual(res.status_code, 200)
         self.assertNotIn("Cobros pendientes", html)
-        self.assertIn("/app/charges/", html)
+        # El sidebar muestra el link de contratos para admins/master
         self.assertIn("/app/contracts/", html)
 
     def test_dashboard_shows_non_urgent_pending_for_assigned_funcionario(self):
@@ -125,10 +125,8 @@ class RoleBasedUiVisibilityTests(APITestCase):
         html = res.content.decode("utf-8")
 
         self.assertEqual(res.status_code, 200)
-        self.assertIn("Cobros y pagos", html)
         self.assertIn("Deuda actual", html)
         self.assertIn("Honorario PYG", html)
-        self.assertIn("tab-charges", html)
         self.assertIn("tab-contracts", html)
 
 

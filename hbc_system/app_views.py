@@ -1991,6 +1991,133 @@ def app_tax_commitment_archive_group(request, group_id):
 
 
 @login_required
+def app_tax_commitment_delete(request, commitment_id):
+    item = get_object_or_404(TaxCommitment.objects.select_related("client"), id=commitment_id)
+    forbidden = _client_access_required(request, item.client)
+    if forbidden:
+        return forbidden
+    if request.method != "POST":
+        return redirect("app-tax-commitment-list")
+
+    before = get_instance_snapshot(item)
+    item.delete()
+    log_model_event(
+        actor=request.user,
+        action="delete_ui",
+        instance=item,
+        before_data=before,
+        after_data=None,
+    )
+    messages.success(request, "Compromiso eliminado.")
+    return redirect(_next_or_default(request, "/app/tax-commitments/"))
+
+
+@login_required
+def app_tax_commitment_delete_group(request, group_id):
+    if request.method != "POST":
+        return redirect("app-tax-commitment-list")
+
+    items = list(
+        TaxCommitment.objects.select_related("client")
+        .filter(installment_group_id=group_id)
+        .order_by("installment_number", "id")
+    )
+    if not items:
+        messages.error(request, "No se encontró el grupo de cuotas indicado.")
+        return redirect(_next_or_default(request, "/app/tax-commitments/"))
+
+    forbidden = _client_access_required(request, items[0].client)
+    if forbidden:
+        return forbidden
+
+    deleted_count = 0
+    for item in items:
+        before = get_instance_snapshot(item)
+        item.delete()
+        deleted_count += 1
+        log_model_event(
+            actor=request.user,
+            action="delete_group_ui",
+            instance=item,
+            before_data=before,
+            after_data=None,
+            metadata={"installment_group_id": str(group_id)},
+        )
+
+    messages.success(request, f"Grupo eliminado ({deleted_count} cuotas eliminadas).")
+    return redirect(_next_or_default(request, "/app/tax-commitments/"))
+
+
+@login_required
+def app_tax_commitment_unarchive(request, commitment_id):
+    item = get_object_or_404(TaxCommitment.objects.select_related("client"), id=commitment_id)
+    forbidden = _client_access_required(request, item.client)
+    if forbidden:
+        return forbidden
+    if request.method != "POST":
+        return redirect("app-tax-commitment-list")
+    
+    if item.status != TaxCommitment.Status.ARCHIVED:
+        messages.error(request, "Solo compromisos archivados pueden desarchivarse.")
+        return redirect(_next_or_default(request, "/app/tax-commitments/"))
+
+    before = get_instance_snapshot(item)
+    item.status = TaxCommitment.Status.PAID
+    item.save(update_fields=["status", "updated_at"])
+    log_model_event(
+        actor=request.user,
+        action="unarchive_ui",
+        instance=item,
+        before_data=before,
+        after_data=get_instance_snapshot(item),
+    )
+    messages.success(request, "Compromiso desarchivado.")
+    return redirect(_next_or_default(request, "/app/tax-commitments/"))
+
+
+@login_required
+def app_tax_commitment_unarchive_group(request, group_id):
+    if request.method != "POST":
+        return redirect("app-tax-commitment-list")
+
+    items = list(
+        TaxCommitment.objects.select_related("client")
+        .filter(installment_group_id=group_id)
+        .order_by("installment_number", "id")
+    )
+    if not items:
+        messages.error(request, "No se encontró el grupo.")
+        return redirect(_next_or_default(request, "/app/tax-commitments/"))
+
+    forbidden = _client_access_required(request, items[0].client)
+    if forbidden:
+        return forbidden
+
+    unarchived_count = 0
+    for item in items:
+        if item.status != TaxCommitment.Status.ARCHIVED:
+            continue
+        before = get_instance_snapshot(item)
+        item.status = TaxCommitment.Status.PAID
+        item.save(update_fields=["status", "updated_at"])
+        unarchived_count += 1
+        log_model_event(
+            actor=request.user,
+            action="unarchive_group_ui",
+            instance=item,
+            before_data=before,
+            after_data=get_instance_snapshot(item),
+            metadata={"installment_group_id": str(group_id)},
+        )
+
+    if unarchived_count:
+        messages.success(request, f"Se desarchivaron {unarchived_count} cuota(s) del grupo.")
+    else:
+        messages.info(request, "El grupo no estaba archivado.")
+    return redirect(_next_or_default(request, "/app/tax-commitments/"))
+
+
+@login_required
 def app_charge_list(request):
     forbidden = _manager_required(request)
     if forbidden:

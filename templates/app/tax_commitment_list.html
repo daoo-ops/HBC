@@ -104,10 +104,20 @@
                       <form method="post" action="/app/tax-commitments/group/{{ group.group_archive_group_id }}/archive/" class="inline inline-action pending-inline-form">
                         {% csrf_token %}
                         <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                        <button type="submit" class="pending-action-btn pending-action-secondary">Archivar grupo</button>
+                        <button type="submit" class="pending-action-btn pending-action-secondary" title="Archivar grupo">📁</button>
+                      </form>
+                    {% elif group.general_label == 'Archivado' %}
+                      <form method="post" action="/app/tax-commitments/group/{{ group.group_action_item.installment_group_id }}/unarchive/" class="inline inline-action pending-inline-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                        <button type="submit" class="pending-action-btn pending-action-secondary" title="Desarchivar grupo">📂</button>
                       </form>
                     {% endif %}
-                    <a class="pending-action-btn pending-action-secondary" href="/app/tax-commitments/{{ group.group_action_item.id }}/edit/">Editar grupo</a>
+                    <a class="pending-action-btn pending-action-secondary" title="Editar grupo" href="/app/tax-commitments/{{ group.group_action_item.id }}/edit/">✏️</a>
+                    <form method="post" action="/app/tax-commitments/group/{{ group.group_action_item.installment_group_id }}/delete/" class="inline inline-action pending-inline-form" onsubmit="return confirm('¿Está seguro de que desea eliminar este grupo y todas sus cuotas?');">
+                      {% csrf_token %}
+                      <button type="submit" class="pending-action-btn pending-action-secondary" title="Eliminar grupo">🗑️</button>
+                    </form>
                   {% else %}
                     {% if group.group_can_notify %}
                       <form method="post" action="/app/tax-commitments/{{ group.group_notify_target.id }}/notify/" class="inline inline-action pending-inline-form">
@@ -127,10 +137,20 @@
                       <form method="post" action="/app/tax-commitments/{{ group.group_archive_target.id }}/archive/" class="inline inline-action pending-inline-form">
                         {% csrf_token %}
                         <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                        <button type="submit" class="pending-action-btn pending-action-secondary">Archivar</button>
+                        <button type="submit" class="pending-action-btn pending-action-secondary" title="Archivar">📁</button>
+                      </form>
+                    {% elif group.general_label == 'Archivado' %}
+                      <form method="post" action="/app/tax-commitments/{{ group.group_action_item.id }}/unarchive/" class="inline inline-action pending-inline-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                        <button type="submit" class="pending-action-btn pending-action-secondary" title="Desarchivar">📂</button>
                       </form>
                     {% endif %}
-                    <a class="pending-action-btn pending-action-secondary" href="/app/tax-commitments/{{ group.group_action_item.id }}/edit/">Editar</a>
+                    <a class="pending-action-btn pending-action-secondary" title="Editar" href="/app/tax-commitments/{{ group.group_action_item.id }}/edit/">✏️</a>
+                    <form method="post" action="/app/tax-commitments/{{ group.group_action_item.id }}/delete/" class="inline inline-action pending-inline-form" onsubmit="return confirm('¿Está seguro de que desea eliminar este compromiso?');">
+                      {% csrf_token %}
+                      <button type="submit" class="pending-action-btn pending-action-secondary" title="Eliminar">🗑️</button>
+                    </form>
                   {% endif %}
                 </div>
               </div>
@@ -182,10 +202,20 @@
                                     <form method="post" action="/app/tax-commitments/{{ item.id }}/archive/" class="inline inline-action pending-inline-form">
                                       {% csrf_token %}
                                       <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                                      <button type="submit" class="pending-action-btn pending-action-secondary">Archivar</button>
+                                      <button type="submit" class="pending-action-btn pending-action-secondary" title="Archivar">📁</button>
+                                    </form>
+                                  {% elif item.status == 'ARCHIVED' %}
+                                    <form method="post" action="/app/tax-commitments/{{ item.id }}/unarchive/" class="inline inline-action pending-inline-form">
+                                      {% csrf_token %}
+                                      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                      <button type="submit" class="pending-action-btn pending-action-secondary" title="Desarchivar">📂</button>
                                     </form>
                                   {% endif %}
-                                  <a class="pending-action-btn pending-action-secondary" href="/app/tax-commitments/{{ item.id }}/edit-installment/?next={{ request.get_full_path|urlencode }}">Editar</a>
+                                  <a class="pending-action-btn pending-action-secondary" title="Editar" href="/app/tax-commitments/{{ item.id }}/edit-installment/?next={{ request.get_full_path|urlencode }}">✏️</a>
+                                  <form method="post" action="/app/tax-commitments/{{ item.id }}/delete/" class="inline inline-action pending-inline-form" onsubmit="return confirm('¿Está seguro de que desea eliminar esta cuota?');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="pending-action-btn pending-action-secondary" title="Eliminar">🗑️</button>
+                                  </form>
                                 </div>
                               </div>
                             </td>

@@ -170,6 +170,26 @@ urlpatterns = [
         app_views.app_tax_commitment_archive_group,
         name="app-tax-commitment-archive-group",
     ),
+    path(
+        "app/tax-commitments/<int:commitment_id>/delete/",
+        app_views.app_tax_commitment_delete,
+        name="app-tax-commitment-delete",
+    ),
+    path(
+        "app/tax-commitments/group/<uuid:group_id>/delete/",
+        app_views.app_tax_commitment_delete_group,
+        name="app-tax-commitment-delete-group",
+    ),
+    path(
+        "app/tax-commitments/<int:commitment_id>/unarchive/",
+        app_views.app_tax_commitment_unarchive,
+        name="app-tax-commitment-unarchive",
+    ),
+    path(
+        "app/tax-commitments/group/<uuid:group_id>/unarchive/",
+        app_views.app_tax_commitment_unarchive_group,
+        name="app-tax-commitment-unarchive-group",
+    ),
     path("auth/login", LoginAPIView.as_view(), name="api-login"),
     path("auth/logout", LogoutAPIView.as_view(), name="api-logout"),
     path("auth/me", MeAPIView.as_view(), name="api-me"),

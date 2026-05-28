@@ -1781,6 +1781,23 @@ def app_tax_commitment_edit(request, commitment_id):
 
             updated = form.save(commit=False)
             updated.save()
+            
+            # Sincronizar campos a nivel de grupo con las demás cuotas si pertenece a un grupo
+            if updated.installment_group_id:
+                siblings = TaxCommitment.objects.filter(
+                    installment_group_id=updated.installment_group_id
+                ).exclude(id=updated.id)
+                if siblings.exists():
+                    siblings.update(
+                        client=updated.client,
+                        commitment_type=updated.commitment_type,
+                        type_other=updated.type_other,
+                        reference_number=updated.reference_number,
+                        period_reference=updated.period_reference,
+                        currency=updated.currency,
+                        notes=updated.notes,
+                    )
+
             log_model_event(
                 actor=request.user,
                 action="update_ui",

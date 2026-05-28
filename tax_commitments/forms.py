@@ -129,9 +129,9 @@ class TaxCommitmentForm(forms.ModelForm):
         if commitment_type == TaxCommitment.CommitmentType.OTHER and not type_other:
             self.add_error("type_other", "Debe especificar el tipo cuando selecciona 'Otro'.")
 
-        if installments_count > 1:
-            if self.instance and self.instance.pk:
-                raise forms.ValidationError("La generación múltiple de cuotas solo está disponible al crear registros nuevos.")
+        is_generating = installments_count > 1 and not (self.instance and self.instance.pk)
+
+        if is_generating:
             if not customize_dates and not due_date:
                 self.add_error("due_date", "Debe indicar el primer vencimiento para generar cuotas.")
             if mode == TaxCommitment.InstallmentMode.AUTO:
@@ -198,11 +198,21 @@ class TaxCommitmentForm(forms.ModelForm):
 
         else:
             if not due_date:
-                self.add_error("due_date", "Debe indicar el vencimiento del compromiso.")
+                if self.instance and self.instance.pk:
+                    cleaned["due_date"] = self.instance.due_date
+                else:
+                    self.add_error("due_date", "Debe indicar el vencimiento del compromiso.")
+            
             if amount is None:
-                self.add_error("amount", "Debe indicar el monto del compromiso.")
-            elif amount <= 0:
+                if self.instance and self.instance.pk:
+                    cleaned["amount"] = self.instance.amount
+                else:
+                    self.add_error("amount", "Debe indicar el monto del compromiso.")
+            
+            final_amount = cleaned.get("amount")
+            if final_amount is not None and final_amount <= 0:
                 self.add_error("amount", "El monto debe ser mayor a cero.")
+                
             self._manual_installment_dates = []
 
         if mode not in {TaxCommitment.InstallmentMode.AUTO, TaxCommitment.InstallmentMode.MANUAL}:

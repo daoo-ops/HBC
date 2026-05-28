@@ -129,6 +129,46 @@ class TaxCommitmentForm(forms.ModelForm):
         if commitment_type == TaxCommitment.CommitmentType.OTHER and not type_other:
             self.add_error("type_other", "Debe especificar el tipo cuando selecciona 'Otro'.")
 
+        # Always parse manual amounts and dates if mode is MANUAL or customize_dates
+        if mode == TaxCommitment.InstallmentMode.MANUAL:
+            raw_values = self.data.getlist("manual_amounts")
+            parsed_values = []
+            for index, raw in enumerate(raw_values, start=1):
+                token = str(raw or "").strip().replace(",", ".")
+                if not token:
+                    continue
+                try:
+                    number = Decimal(token)
+                except InvalidOperation:
+                    self.add_error(None, f"Monto manual de cuota {index} inválido.")
+                    continue
+                if number <= 0:
+                    self.add_error(None, f"Monto manual de cuota {index} debe ser mayor a cero.")
+                    continue
+                parsed_values.append(number)
+
+            if len(parsed_values) > 0 and len(parsed_values) != installments_count:
+                self.add_error(None, f"En modo manual debe completar exactamente {installments_count} montos de cuota.")
+            self._manual_installment_amounts = parsed_values
+
+        if customize_dates or mode == TaxCommitment.InstallmentMode.MANUAL:
+            raw_dates = self.data.getlist("manual_due_dates")
+            parsed_dates = []
+            for index, raw in enumerate(raw_dates, start=1):
+                token = str(raw or "").strip()
+                if not token:
+                    continue
+                parsed = parse_date(token)
+                if not parsed:
+                    self.add_error(None, f"Fecha manual de cuota {index} inválida.")
+                    continue
+                parsed_dates.append(parsed)
+            if len(parsed_dates) > 0 and len(parsed_dates) != installments_count:
+                self.add_error(None, f"Si personaliza fechas debe completar exactamente {installments_count} fechas de cuota.")
+            self._manual_installment_dates = parsed_dates
+        else:
+            self._manual_installment_dates = []
+
         is_generating = installments_count > 1 and not (self.instance and self.instance.pk)
 
         if is_generating:
@@ -145,56 +185,10 @@ class TaxCommitmentForm(forms.ModelForm):
                     except ValueError as exc:
                         self.add_error("amount", str(exc))
             else:
-                raw_values = self.data.getlist("manual_amounts")
-                parsed_values = []
-                for index, raw in enumerate(raw_values, start=1):
-                    token = str(raw or "").strip().replace(",", ".")
-                    if not token:
-                        continue
-                    try:
-                        number = Decimal(token)
-                    except InvalidOperation:
-                        self.add_error(None, f"Monto manual de cuota {index} inválido.")
-                        continue
-                    if number <= 0:
-                        self.add_error(None, f"Monto manual de cuota {index} debe ser mayor a cero.")
-                        continue
-                    parsed_values.append(number)
-
-                if len(parsed_values) != installments_count:
-                    self.add_error(
-                        None,
-                        f"En modo manual debe completar exactamente {installments_count} montos de cuota.",
-                    )
-                self._manual_installment_amounts = parsed_values
-                if amount is not None and parsed_values:
-                    manual_total = sum(parsed_values, Decimal("0"))
+                if amount is not None and getattr(self, "_manual_installment_amounts", None):
+                    manual_total = sum(self._manual_installment_amounts, Decimal("0"))
                     if manual_total != amount:
-                        self.add_error(
-                            "amount",
-                            "El monto total no coincide con la suma manual de cuotas.",
-                        )
-
-            if customize_dates:
-                raw_dates = self.data.getlist("manual_due_dates")
-                parsed_dates = []
-                for index, raw in enumerate(raw_dates, start=1):
-                    token = str(raw or "").strip()
-                    if not token:
-                        continue
-                    parsed = parse_date(token)
-                    if not parsed:
-                        self.add_error(None, f"Fecha manual de cuota {index} inválida.")
-                        continue
-                    parsed_dates.append(parsed)
-                if len(parsed_dates) != installments_count:
-                    self.add_error(
-                        None,
-                        f"Si personaliza fechas debe completar exactamente {installments_count} fechas de cuota.",
-                    )
-                self._manual_installment_dates = parsed_dates
-            else:
-                self._manual_installment_dates = []
+                        self.add_error("amount", "El monto total no coincide con la suma manual de cuotas.")
 
         else:
             if not due_date:
@@ -212,8 +206,6 @@ class TaxCommitmentForm(forms.ModelForm):
             final_amount = cleaned.get("amount")
             if final_amount is not None and final_amount <= 0:
                 self.add_error("amount", "El monto debe ser mayor a cero.")
-                
-            self._manual_installment_dates = []
 
         if mode not in {TaxCommitment.InstallmentMode.AUTO, TaxCommitment.InstallmentMode.MANUAL}:
             self.add_error("installment_mode", "Modo de cuotas inválido.")
@@ -264,6 +256,11 @@ class TaxCommitmentForm(forms.ModelForm):
                 if token:
                     values.append(token)
             return values
+        if self.instance and self.instance.pk and getattr(self.instance, "installment_group_id", None):
+            siblings = TaxCommitment.objects.filter(
+                installment_group_id=self.instance.installment_group_id
+            ).order_by("installment_number")
+            return [str(s.amount).replace(",", ".") if s.amount else "" for s in siblings]
         return []
 
     def get_manual_due_dates_for_render(self):
@@ -274,6 +271,11 @@ class TaxCommitmentForm(forms.ModelForm):
                 if token:
                     values.append(token)
             return values
+        if self.instance and self.instance.pk and getattr(self.instance, "installment_group_id", None):
+            siblings = TaxCommitment.objects.filter(
+                installment_group_id=self.instance.installment_group_id
+            ).order_by("installment_number")
+            return [s.due_date.strftime("%Y-%m-%d") if s.due_date else "" for s in siblings]
         return []
 
 

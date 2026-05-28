@@ -185,7 +185,7 @@
                                       <button type="submit" class="pending-action-btn pending-action-secondary">Archivar</button>
                                     </form>
                                   {% endif %}
-                                  <a class="pending-action-btn pending-action-secondary" href="/app/tax-commitments/{{ item.id }}/edit/">Editar</a>
+                                  <a class="pending-action-btn pending-action-secondary" href="/app/tax-commitments/{{ item.id }}/edit-installment/?next={{ request.get_full_path|urlencode }}">Editar</a>
                                 </div>
                               </div>
                             </td>

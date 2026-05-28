@@ -15,12 +15,7 @@ def _to_decimal(value):
 
 
 def _format_with_thousands(value_as_str: str) -> str:
-    sign = ""
-    raw = value_as_str
-    if raw.startswith("-"):
-        sign = "-"
-        raw = raw[1:]
-    return sign + raw.replace(",", ".")
+    return value_as_str.replace(",", ".")
 
 
 @register.filter(name="money")
@@ -40,3 +35,12 @@ def money(value, currency="PYG"):
     base = f"{int(rounded):,}"
     return _format_with_thousands(base)
 
+
+@register.filter(name="format_number")
+def format_number(value):
+    amount = _to_decimal(value)
+    if amount is None:
+        return "-"
+    rounded = amount.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+    base = f"{int(rounded):,}"
+    return _format_with_thousands(base)

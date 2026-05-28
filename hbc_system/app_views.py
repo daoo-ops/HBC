@@ -35,7 +35,7 @@ from notifications.services import notify_users, recipients_for_bank_request, re
 from operations.forms import PendingItemForm, SubmissionForm
 from operations.models import PendingItem, Submission
 from operations.services import ensure_period_submissions_for_clients
-from tax_commitments.forms import TaxCommitmentForm
+from tax_commitments.forms import TaxCommitmentForm, TaxCommitmentInstallmentForm
 from tax_commitments.models import TaxCommitment
 from payment_logs.models import PaymentReceptionLog
 
@@ -2746,3 +2746,52 @@ def app_bank_create_receipts_pending(request, request_id):
     else:
         messages.success(request, "Pendiente de recibos creado.")
     return redirect(_next_or_default(request, "/app/banks/"))
+
+
+@login_required
+def app_tax_commitment_installment_edit(request, commitment_id):
+    """Edición rápida de una cuota individual: solo fecha, monto, estado y nota.
+    No regenera cuotas ni toca la lógica de grupos.
+    """
+    item = get_object_or_404(TaxCommitment.objects.select_related("client"), id=commitment_id)
+    forbidden = _client_access_required(request, item.client)
+    if forbidden:
+        return forbidden
+
+    if request.method == "POST":
+        before = get_instance_snapshot(item)
+        form = TaxCommitmentInstallmentForm(request.POST, instance=item)
+        if form.is_valid():
+            updated = form.save()
+            log_model_event(
+                actor=request.user,
+                action="update_ui",
+                instance=updated,
+                before_data=before,
+                after_data=get_instance_snapshot(updated),
+            )
+            _notify_tax_commitment_event(
+                actor=request.user,
+                item=updated,
+                message=f"Cuota {updated.installment_number or ''}/{updated.installment_total or ''} actualizada: {updated.type_display}.",
+                event_key="tax_commitment_updated",
+                severity=UserNotification.Severity.INFO,
+            )
+            messages.success(request, "Cuota actualizada correctamente.")
+            return redirect(_next_or_default(request, "/app/tax-commitments/"))
+    else:
+        form = TaxCommitmentInstallmentForm(instance=item)
+
+    installment_label = ""
+    if item.installment_number and item.installment_total:
+        installment_label = f" — Cuota {item.installment_number}/{item.installment_total}"
+
+    return render(
+        request,
+        "app/form_page.html",
+        {
+            "title": f"Editar cuota{installment_label}: {item.client.name}",
+            "form": form,
+            "back_url": "/app/tax-commitments/",
+        },
+    )

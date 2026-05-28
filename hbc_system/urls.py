@@ -146,6 +146,11 @@ urlpatterns = [
         name="app-tax-commitment-edit",
     ),
     path(
+        "app/tax-commitments/<int:commitment_id>/edit-installment/",
+        app_views.app_tax_commitment_installment_edit,
+        name="app-tax-commitment-installment-edit",
+    ),
+    path(
         "app/tax-commitments/<int:commitment_id>/notify/",
         app_views.app_tax_commitment_notify,
         name="app-tax-commitment-notify",

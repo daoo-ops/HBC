@@ -265,3 +265,30 @@ class TaxCommitmentForm(forms.ModelForm):
                     values.append(token)
             return values
         return []
+
+
+class TaxCommitmentInstallmentForm(forms.ModelForm):
+    """Formulario simplificado para editar una sola cuota de un compromiso tributario.
+    Solo permite cambiar: fecha de vencimiento, monto, estado y observaciones.
+    No toca la lógica de generación de cuotas múltiples.
+    """
+
+    class Meta:
+        model = TaxCommitment
+        fields = ["due_date", "amount", "status", "notes"]
+        widgets = {
+            "due_date": DateInput(),
+            "notes": forms.Textarea(attrs={"rows": 2}),
+        }
+        labels = {
+            "due_date": "Fecha de vencimiento",
+            "amount": "Monto",
+            "status": "Estado",
+            "notes": "Observación",
+        }
+
+    def clean_amount(self):
+        amount = self.cleaned_data.get("amount")
+        if amount is not None and amount <= 0:
+            raise forms.ValidationError("El monto debe ser mayor a cero.")
+        return amount

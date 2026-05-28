@@ -391,6 +391,122 @@
   <script src="/static/js/client_picker.js?v=20260313-1"></script>
   {% block extra_js %}{% endblock %}
   <script>
+  /* ─── Formateo de montos: separador de miles con punto ─── */
+  (function () {
+    /**
+     * Campos de monto que deben mostrarse con separador de miles (punto).
+     * Detectamos: inputs con name que incluya "amount", "monto", "debt", "paid",
+     * "monthly_amount", "manual_amounts", o que tengan data-money="true".
+     * Excluimos campos de fecha, texto libre, etc.
+     */
+    var MONEY_NAMES = /amount|monto|debt|paid|monthly_amount|manual_amount/i;
+
+    function rawToDisplay(raw) {
+      // Quita todo excepto dígitos y punto/coma decimal
+      var clean = String(raw).replace(/[^\d]/g, '');
+      if (!clean) return '';
+      var n = parseInt(clean, 10);
+      if (isNaN(n)) return '';
+      // Formato con punto como separador de miles
+      return n.toLocaleString('es-PY').replace(/,/g, '.');
+    }
+
+    function displayToRaw(display) {
+      // Quita los puntos de separador → número limpio para el servidor
+      return String(display).replace(/\./g, '').replace(/,/g, '.');
+    }
+
+    function isMoneyField(input) {
+      if (input.type === 'hidden' || input.type === 'date' || input.type === 'checkbox') return false;
+      if (input.dataset.money === 'false') return false;
+      if (input.dataset.money === 'true') return true;
+      var name = input.name || input.id || '';
+      return MONEY_NAMES.test(name) && (input.type === 'number' || input.type === 'text');
+    }
+
+    function upgradeInput(input) {
+      if (input._hbcMoneyReady) return;
+      input._hbcMoneyReady = true;
+
+      // Convertir a tipo text para poder mostrar puntos
+      if (input.type === 'number') {
+        input.type = 'text';
+        input.inputMode = 'numeric';
+      }
+
+      // Formatear valor inicial si existe
+      if (input.value) {
+        var n = parseFloat(String(input.value).replace(/\./g, '').replace(',', '.'));
+        if (!isNaN(n)) {
+          input.value = rawToDisplay(String(Math.round(n)));
+        }
+      }
+
+      input.addEventListener('focus', function () {
+        // Al enfocar: muestra el número sin puntos para edición fácil
+        var raw = displayToRaw(this.value);
+        if (raw) this.value = raw;
+      });
+
+      input.addEventListener('blur', function () {
+        // Al salir: aplica formato con puntos
+        var raw = displayToRaw(this.value);
+        if (raw) this.value = rawToDisplay(raw);
+      });
+
+      input.addEventListener('input', function () {
+        // Solo permite dígitos mientras escribe
+        var pos = this.selectionStart;
+        var prev = this.value;
+        var clean = prev.replace(/[^\d]/g, '');
+        if (prev !== clean) {
+          this.value = clean;
+          // Mantener posición del cursor aproximada
+          try { this.setSelectionRange(Math.max(0, pos - 1), Math.max(0, pos - 1)); } catch(e) {}
+        }
+      });
+    }
+
+    function upgradeAll() {
+      document.querySelectorAll('input').forEach(function (input) {
+        if (isMoneyField(input)) upgradeInput(input);
+      });
+    }
+
+    // Al enviar el form: limpiar puntos para que Django reciba el número puro
+    document.addEventListener('submit', function (e) {
+      var form = e.target;
+      if (!(form instanceof HTMLFormElement)) return;
+      form.querySelectorAll('input[data-money!="false"]').forEach(function (input) {
+        if (input._hbcMoneyReady) {
+          input.value = displayToRaw(input.value);
+        }
+      });
+    }, true); // capture phase: antes del submit handler de Django
+
+    // Primer scan
+    upgradeAll();
+
+    // Observer para inputs creados dinámicamente (cuotas manuales, etc.)
+    if (window.MutationObserver) {
+      var observer = new MutationObserver(function (mutations) {
+        mutations.forEach(function (m) {
+          m.addedNodes.forEach(function (node) {
+            if (node.nodeType !== 1) return;
+            if (node.tagName === 'INPUT' && isMoneyField(node)) {
+              upgradeInput(node);
+            }
+            node.querySelectorAll && node.querySelectorAll('input').forEach(function (input) {
+              if (isMoneyField(input)) upgradeInput(input);
+            });
+          });
+        });
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+    }
+  })();
+  </script>
+  <script>
   /* ─── HBC Enhancements ─── */
   (function () {
     /* Activate CSS entrance animations */

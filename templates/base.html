@@ -401,6 +401,35 @@
      */
     var MONEY_NAMES = /amount|monto|debt|paid|monthly_amount|manual_amount/i;
 
+    function parseInitialValue(val) {
+      if (!val) return NaN;
+      val = String(val).trim();
+
+      // Eliminar el sufijo .00 si existe, que es muy común en Django para montos enteros
+      if (val.endsWith('.00')) {
+        val = val.substring(0, val.length - 3);
+      }
+
+      // Si tiene exactamente un punto y ninguna coma, y el punto está seguido de 1 o 2 dígitos,
+      // es una representación de decimal en inglés (por ej. "5525258.00" o "123.45").
+      if (val.indexOf('.') !== -1 && val.indexOf(',') === -1) {
+        var parts = val.split('.');
+        if (parts.length === 2 && parts[1].length <= 2) {
+          return parseFloat(val);
+        }
+      }
+
+      // Si es un número entero puro sin separadores
+      if (/^\d+$/.test(val)) {
+        return parseFloat(val);
+      }
+
+      // De lo contrario, asumimos formato local español: los puntos son miles y la coma es decimal.
+      // Quitamos todos los puntos de miles, y cambiamos la coma decimal por punto.
+      var clean = val.replace(/\./g, '').replace(',', '.');
+      return parseFloat(clean);
+    }
+
     function rawToDisplay(raw) {
       // Quita todo excepto dígitos y punto/coma decimal
       var clean = String(raw).replace(/[^\d]/g, '');
@@ -436,7 +465,7 @@
 
       // Formatear valor inicial si existe
       if (input.value) {
-        var n = parseFloat(String(input.value).replace(/\./g, '').replace(',', '.'));
+        var n = parseInitialValue(input.value);
         if (!isNaN(n)) {
           input.value = rawToDisplay(String(Math.round(n)));
         }
@@ -477,7 +506,7 @@
     document.addEventListener('submit', function (e) {
       var form = e.target;
       if (!(form instanceof HTMLFormElement)) return;
-      form.querySelectorAll('input[data-money!="false"]').forEach(function (input) {
+      form.querySelectorAll('input:not([data-money="false"])').forEach(function (input) {
         if (input._hbcMoneyReady) {
           input.value = displayToRaw(input.value);
         }
